@@ -62,5 +62,5 @@ func infect(target: Node2D) -> void:
 func _clamp_to_world() -> void:
 	var w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
 	var h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	global_position.x = clampf(global_position.x, 0.0, w)
-	global_position.y = clampf(global_position.y, 0.0, h)
+	global_position.x = fposmod(global_position.x, w)
+	global_position.y = fposmod(global_position.y, h)

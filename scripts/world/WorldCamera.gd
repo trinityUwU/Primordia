@@ -17,7 +17,9 @@ func _ready() -> void:
 	add_to_group("main_camera")
 	_target_zoom = ZOOM_LEVELS[_current_level]
 	zoom = Vector2(_target_zoom, _target_zoom)
-	_clamp_position()
+	var world_w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
+	var world_h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
+	global_position = Vector2(world_w * 0.5, world_h * 0.5)
 
 
 func _process(delta: float) -> void:
