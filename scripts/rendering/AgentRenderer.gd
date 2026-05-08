@@ -1,7 +1,6 @@
 class_name AgentRenderer
 extends Node2D
 
-
 const COLOR_GRAM_POS: Color = Color(0.4, 0.7, 1.0, 0.9)
 const COLOR_GRAM_NEG: Color = Color(1.0, 0.45, 0.2, 0.9)
 const COLOR_SPORE: Color = Color(0.55, 0.55, 0.55, 0.85)
@@ -20,9 +19,9 @@ func _draw() -> void:
 	for agent in agents:
 		if not agent.alive:
 			continue
-		if agent is Bacterium:
+		if PopulationManager.is_bacterium(agent):
 			_draw_bacterium(agent)
-		elif agent is Virus:
+		elif PopulationManager.is_virus(agent):
 			_draw_virus(agent)
 
 
