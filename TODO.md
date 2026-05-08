@@ -131,6 +131,31 @@
 
 - [ ] Shader cartoon : outline noir, aplats couleur, palette unique par espèce
 - [ ] Génération procédurale des sprites : forme + taille + couleur selon stats
+
+### Formes réalistes par espèce (procédural, zéro texture)
+
+**Bactéries**
+- [ ] Cocci (Staphylococcus-like) : sphère, grappes de 4-8 selon génome
+- [ ] Bacille (E.coli-like) : ovale allongé, ratio longueur/largeur selon speed
+- [ ] Spirille (Helicobacter-like) : courbe sinusoïdale animée
+- [ ] Flagelle : ligne ondulante rotative selon vitesse de déplacement, absent en spore
+- [ ] Membrane gram+ épaisse visible (double cercle) vs gram- fine (cercle simple)
+- [ ] Animation division : forme en 8 → séparation progressive sur N ticks
+- [ ] Spore : cercle compact avec paroi épaisse, couleur terreuse, taille réduite
+
+**Virus**
+- [ ] Icosaèdre à spicules 2D (influenza/coronavirus) : hexagone + 6-12 pointes rayonnantes
+- [ ] Bactériophage : tête hexagonale + queue + 6 pattes d'injection (virus ADN)
+- [ ] Filamenteux (Ebola-like) : long fil ondulant, longueur proportionnelle à virulence
+- [ ] Halo de propagation semi-transparent animé (rayon = transmission_radius)
+- [ ] Couronne de glycoprotéines pour les coronavirus-like (spicules arrondis)
+
+**Malformations à la naissance**
+- [ ] Flagelle absent (mutation) : bactérie immobile, coût survival +30%
+- [ ] Membrane asymétrique : forme déformée générée via noise sur le rayon
+- [ ] Division incomplète : cellule bicéphale (deux noyaux visibles, un seul corps)
+- [ ] Probabilité malformation : 1-5% par division, augmente avec taux de mutation élevé
+- [ ] Malformation létale (>seuil) : mort immédiate à la naissance
 - [ ] Filtre "bactérien" : overlay bioluminescent, halos de densité, particules flottantes
 - [ ] Filtre "sanguin" : vaisseaux visibles, rougeur selon blessure, éclaboussures
 - [ ] Filtre "musculaire" : fibres visibles, contraction animée lors d'effort
