@@ -1,8 +1,6 @@
 class_name AgentRenderer
 extends Node2D
 
-const BacteriumScript: GDScript = preload("res://scripts/agents/Bacterium.gd")
-const VirusScript: GDScript = preload("res://scripts/agents/Virus.gd")
 
 const COLOR_GRAM_POS: Color = Color(0.4, 0.7, 1.0, 0.9)
 const COLOR_GRAM_NEG: Color = Color(1.0, 0.45, 0.2, 0.9)
@@ -22,9 +20,9 @@ func _draw() -> void:
 	for agent in agents:
 		if not agent.alive:
 			continue
-		if agent.get_script() == BacteriumScript:
+		if agent is Bacterium:
 			_draw_bacterium(agent)
-		elif agent.get_script() == VirusScript:
+		elif agent is Virus:
 			_draw_virus(agent)
 
 

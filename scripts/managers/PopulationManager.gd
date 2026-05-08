@@ -1,8 +1,5 @@
 extends Node
 
-const AgentBaseScript: GDScript = preload("res://scripts/agents/AgentBase.gd")
-const BacteriumScript: GDScript = preload("res://scripts/agents/Bacterium.gd")
-const VirusScript: GDScript = preload("res://scripts/agents/Virus.gd")
 
 const MAX_AGENTS: int = 2000
 const INITIAL_BACTERIA: int = 50
@@ -28,7 +25,7 @@ func _spawn_initial() -> void:
 func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Node2D:
 	if _agents.size() >= MAX_AGENTS:
 		return null
-	var b: Node2D = BacteriumScript.new()
+	var b: Node2D = Bacterium.new()
 	b.global_position = pos
 	if not genome.is_empty():
 		b.genome = genome
@@ -39,7 +36,7 @@ func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Node2D:
 func spawn_virus(pos: Vector2) -> Node2D:
 	if _agents.size() >= MAX_AGENTS:
 		return null
-	var v: Node2D = VirusScript.new()
+	var v: Node2D = Virus.new()
 	v.global_position = pos
 	_register_agent(v)
 	return v

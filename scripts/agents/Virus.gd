@@ -39,7 +39,7 @@ func _move() -> void:
 
 
 func _attempt_transmissions() -> void:
-	var nearby: Array[AgentBase] = PopulationManager.get_agents_in_radius(
+	var nearby: Array = PopulationManager.get_agents_in_radius(
 		global_position, transmission_radius
 	)
 	for target in nearby:
@@ -49,7 +49,7 @@ func _attempt_transmissions() -> void:
 			infect(target)
 
 
-func infect(target: AgentBase) -> void:
+func infect(target: Node2D) -> void:
 	var resistance: float = target.genome.get("resistance", 0.0)
 	var effective_prob: float = 1.0 - resistance
 	if randf() > effective_prob:

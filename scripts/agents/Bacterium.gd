@@ -108,7 +108,7 @@ func _check_division() -> void:
 		return
 	var child_genome: Dictionary = _mutate_genome()
 	var offset: Vector2 = Vector2.from_angle(randf() * TAU) * size * 2.0
-	var child: Bacterium = PopulationManager.spawn_bacterium(global_position + offset, child_genome)
+	var child: Node2D = PopulationManager.spawn_bacterium(global_position + offset, child_genome)
 	var cost: float = genome.get("division_energy_cost", 0.6)
 	child.energy = cost * 0.5
 	energy -= cost * 0.5
