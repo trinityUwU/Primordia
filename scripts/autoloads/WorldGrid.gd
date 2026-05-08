@@ -15,18 +15,18 @@ const BIOME_WOOD:  int = 3
 const BIOME_ROCK:  int = 4
 
 const BIOME_REGEN: Dictionary = {
-	0: { "nutrients": 0.0005, "water": 0.008, "oxygen": 0.001 },   # WATER
-	1: { "nutrients": 0.002,  "water": 0.001, "oxygen": 0.0005 },  # EARTH
-	2: { "nutrients": 0.005,  "water": 0.003, "oxygen": 0.002 },   # GRASS
-	3: { "nutrients": 0.007,  "water": 0.004, "oxygen": 0.003 },   # WOOD
-	4: { "nutrients": 0.0002, "water": 0.0,   "oxygen": 0.0002 },  # ROCK
+	0: { "nutrients": 0.004, "water": 0.05,  "oxygen": 0.008 },   # WATER
+	1: { "nutrients": 0.02,  "water": 0.008, "oxygen": 0.004 },   # EARTH
+	2: { "nutrients": 0.05,  "water": 0.02,  "oxygen": 0.015 },   # GRASS
+	3: { "nutrients": 0.07,  "water": 0.025, "oxygen": 0.02 },    # WOOD
+	4: { "nutrients": 0.002, "water": 0.0,   "oxygen": 0.002 },   # ROCK
 }
 const BIOME_REGEN_CAP: Dictionary = {
-	0: { "nutrients": 0.15, "water": 1.0,  "oxygen": 0.18 },
-	1: { "nutrients": 0.6,  "water": 0.5,  "oxygen": 0.22 },
-	2: { "nutrients": 0.8,  "water": 0.65, "oxygen": 0.28 },
-	3: { "nutrients": 0.9,  "water": 0.75, "oxygen": 0.32 },
-	4: { "nutrients": 0.08, "water": 0.12, "oxygen": 0.22 },
+	0: { "nutrients": 0.2,  "water": 1.0,  "oxygen": 0.2 },
+	1: { "nutrients": 0.7,  "water": 0.6,  "oxygen": 0.25 },
+	2: { "nutrients": 1.0,  "water": 0.8,  "oxygen": 0.35 },
+	3: { "nutrients": 1.0,  "water": 0.9,  "oxygen": 0.4 },
+	4: { "nutrients": 0.1,  "water": 0.15, "oxygen": 0.22 },
 }
 
 const BIOME_DEFAULTS: Dictionary = {
@@ -237,7 +237,7 @@ func _on_tick(tick: int) -> void:
 
 
 func _regenerate_fields() -> void:
-	for coord in _active_chunks:
+	for coord in _chunks:
 		if not _chunks.has(coord):
 			continue
 		var chunk: Dictionary = _chunks[coord]
