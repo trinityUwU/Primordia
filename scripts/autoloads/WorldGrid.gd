@@ -1,7 +1,7 @@
 extends Node
 
-const GRID_WIDTH: int = 128
-const GRID_HEIGHT: int = 128
+const GRID_WIDTH: int = 192
+const GRID_HEIGHT: int = 108
 const CELL_SIZE: float = 8.0
 
 const FIELD_KEYS: Array[String] = [
