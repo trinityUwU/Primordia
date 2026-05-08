@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://bacterium_scene"]
-
-[ext_resource type="Script" path="res://scripts/agents/Bacterium.gd" id="1_bact"]
-
-[node name="Bacterium" type="Node2D"]
-script = ExtResource("1_bact")
