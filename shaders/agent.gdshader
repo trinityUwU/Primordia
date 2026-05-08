@@ -18,8 +18,10 @@ void fragment() {
 		color = vec4(0.55, 0.55, 0.55, 0.85);
 	} else if (v_type < 3.5) {
 		color = vec4(1.0, 0.25, 0.25, 0.65);
+	} else if (v_type < 4.5) {
+		color = vec4(0.4, 0.35, 0.3, v_alpha * 0.7); // dead
 	} else {
-		color = vec4(0.4, 0.35, 0.3, v_alpha * 0.7);
+		color = vec4(0.75, 0.2, 0.9, 0.95);    // protozoa — violet
 	}
 	COLOR = color;
 }

@@ -3,6 +3,14 @@ extends Node
 const MAX_AGENTS: int = 3000
 const TYPE_BACTERIUM: int = 0
 const TYPE_VIRUS: int = 1
+const TYPE_PROTOZOA: int = 2
+
+# FSM states
+const STATE_IDLE: int = 0
+const STATE_SEEK: int = 1
+const STATE_HUNT: int = 2
+const STATE_REPRODUCE: int = 3
+
 const FLAG_ALIVE: int = 1
 const FLAG_GRAM_POS: int = 2
 const FLAG_SPORE: int = 4
@@ -38,6 +46,9 @@ var flags: PackedInt32Array
 var dead_timer: PackedInt32Array
 var run_timer: PackedInt32Array
 var spore_timer: PackedInt32Array
+var brain_state: PackedInt32Array
+var target_i: PackedInt32Array    # index of target agent (-1 = none)
+var sense_radius: PackedFloat32Array
 
 
 func _ready() -> void:
@@ -65,6 +76,9 @@ func _resize_arrays(n: int) -> void:
 	dead_timer.resize(n);     dead_timer.fill(0)
 	run_timer.resize(n);      run_timer.fill(0)
 	spore_timer.resize(n);    spore_timer.fill(0)
+	brain_state.resize(n);    brain_state.fill(0)
+	target_i.resize(n);       target_i.fill(-1)
+	sense_radius.resize(n);   sense_radius.fill(0.0)
 
 
 func _find_free_slot() -> int:
@@ -134,6 +148,39 @@ func spawn_virus(px: float, py: float) -> int:
 	dead_timer[i]        = 0
 	run_timer[i]         = 0
 	spore_timer[i]       = 0
+	if i == count:
+		count += 1
+	_alive_count += 1
+	return i
+
+
+func spawn_protozoa(px: float, py: float) -> int:
+	var i: int = _find_free_slot()
+	if i < 0:
+		return -1
+	var angle: float = randf() * TAU
+	pos_x[i]             = px
+	pos_y[i]             = py
+	dir_x[i]             = cos(angle)
+	dir_y[i]             = sin(angle)
+	energy[i]            = 1.5
+	speed[i]             = 50.0
+	size_arr[i]          = 2.5
+	metabolism[i]        = 0.01
+	division_threshold[i]= 3.0
+	mutation_rate[i]     = 0.01
+	resistance[i]        = 0.8
+	virulence[i]         = 0.9
+	age[i]               = 0
+	max_age[i]           = 5000
+	agent_type[i]        = TYPE_PROTOZOA
+	flags[i]             = FLAG_ALIVE
+	dead_timer[i]        = 0
+	run_timer[i]         = 0
+	spore_timer[i]       = 0
+	brain_state[i]       = STATE_IDLE
+	target_i[i]          = -1
+	sense_radius[i]      = 120.0
 	if i == count:
 		count += 1
 	_alive_count += 1
@@ -214,6 +261,8 @@ func _process_agents(tick: int) -> void:
 		if f & FLAG_ALIVE:
 			if agent_type[i] == TYPE_BACTERIUM:
 				_tick_bacterium(i)
+			elif agent_type[i] == TYPE_PROTOZOA:
+				_tick_protozoa(i)
 			else:
 				_tick_virus(i)
 		i += TICK_STRIDE
@@ -377,6 +426,132 @@ func _virus_infect(i: int) -> void:
 				kill(j)
 
 
+func _tick_protozoa(i: int) -> void:
+	age[i] += 1
+	if age[i] > max_age[i]:
+		kill(i)
+		return
+	energy[i] -= metabolism[i]
+	if energy[i] <= 0.0:
+		kill(i)
+		return
+	match brain_state[i]:
+		STATE_IDLE:
+			_protozoa_idle(i)
+		STATE_SEEK:
+			_protozoa_seek(i)
+		STATE_HUNT:
+			_protozoa_hunt(i)
+		STATE_REPRODUCE:
+			_protozoa_reproduce(i)
+
+
+func _protozoa_idle(i: int) -> void:
+	# Random walk, scan for prey
+	run_timer[i] -= 1
+	if run_timer[i] <= 0:
+		var angle: float = randf() * TAU
+		dir_x[i] = cos(angle)
+		dir_y[i] = sin(angle)
+		run_timer[i] = randi_range(20, 60)
+	pos_x[i] += dir_x[i] * (speed[i] * 0.3 / 60.0)
+	pos_y[i] += dir_y[i] * (speed[i] * 0.3 / 60.0)
+	# Scan for nearby bacteria
+	var prey: int = _find_prey(i)
+	if prey >= 0:
+		target_i[i] = prey
+		brain_state[i] = STATE_HUNT
+	elif energy[i] >= division_threshold[i]:
+		brain_state[i] = STATE_REPRODUCE
+
+
+func _protozoa_seek(i: int) -> void:
+	# Move toward last known prey direction
+	pos_x[i] += dir_x[i] * (speed[i] * 0.5 / 60.0)
+	pos_y[i] += dir_y[i] * (speed[i] * 0.5 / 60.0)
+	var prey: int = _find_prey(i)
+	if prey >= 0:
+		target_i[i] = prey
+		brain_state[i] = STATE_HUNT
+	else:
+		run_timer[i] -= 1
+		if run_timer[i] <= 0:
+			brain_state[i] = STATE_IDLE
+
+
+func _protozoa_hunt(i: int) -> void:
+	var ti: int = target_i[i]
+	# Validate target still alive
+	if ti < 0 or ti >= count or not is_alive(ti) or agent_type[ti] != TYPE_BACTERIUM:
+		target_i[i] = -1
+		brain_state[i] = STATE_IDLE
+		return
+	# Move toward target
+	var dx: float = pos_x[ti] - pos_x[i]
+	var dy: float = pos_y[ti] - pos_y[i]
+	var dist2: float = dx * dx + dy * dy
+	if dist2 > 0.01:
+		var inv: float = 1.0 / sqrt(dist2)
+		dir_x[i] = dx * inv
+		dir_y[i] = dy * inv
+	pos_x[i] += dir_x[i] * (speed[i] / 60.0)
+	pos_y[i] += dir_y[i] * (speed[i] / 60.0)
+	# Eat on contact (distance < 12px)
+	if dist2 < 144.0:
+		energy[i] = minf(energy[i] + energy[ti] * 0.7, 4.0)
+		kill(ti)
+		target_i[i] = -1
+		brain_state[i] = STATE_IDLE if energy[i] < division_threshold[i] else STATE_REPRODUCE
+	elif dist2 > sense_radius[i] * sense_radius[i] * 4.0:
+		# Lost target
+		target_i[i] = -1
+		brain_state[i] = STATE_SEEK
+		run_timer[i] = 40
+
+
+func _protozoa_reproduce(i: int) -> void:
+	if _alive_count >= MAX_AGENTS:
+		brain_state[i] = STATE_IDLE
+		return
+	var angle: float = randf() * TAU
+	var ci: int = spawn_protozoa(
+		pos_x[i] + cos(angle) * 10.0,
+		pos_y[i] + sin(angle) * 10.0
+	)
+	if ci >= 0:
+		energy[ci] = division_threshold[i] * 0.4
+		energy[i] -= division_threshold[i] * 0.5
+	brain_state[i] = STATE_IDLE
+
+
+func _find_prey(i: int) -> int:
+	var r: float = sense_radius[i]
+	var r2: float = r * r
+	var px: float = pos_x[i]
+	var py: float = pos_y[i]
+	var best: int = -1
+	var best_dist2: float = r2
+	# Use spatial hash for efficiency
+	var cell_radius: int = ceili(r / SPATIAL_CELL)
+	var cx: int = floori(px / SPATIAL_CELL)
+	var cy: int = floori(py / SPATIAL_CELL)
+	for dy in range(-cell_radius, cell_radius + 1):
+		for ddx in range(-cell_radius, cell_radius + 1):
+			var cell: Vector2i = Vector2i(cx + ddx, cy + dy)
+			if not _spatial.has(cell):
+				continue
+			for j in _spatial[cell]:
+				if agent_type[j] != TYPE_BACTERIUM or not is_alive(j):
+					continue
+				var ddx2: float = pos_x[j] - px
+				var ddy2: float = pos_y[j] - py
+				var d2: float = ddx2 * ddx2 + ddy2 * ddy2
+				if d2 < best_dist2:
+					best_dist2 = d2
+					best = j
+	return best
+
+
 func compact_dead() -> void:
 	var i: int = 0
 	while i < count:
@@ -417,6 +592,9 @@ func _swap_agents(a: int, b: int) -> void:
 	tmp_i = dead_timer[a]; dead_timer[a] = dead_timer[b]; dead_timer[b] = tmp_i
 	tmp_i = run_timer[a]; run_timer[a] = run_timer[b]; run_timer[b] = tmp_i
 	tmp_i = spore_timer[a]; spore_timer[a] = spore_timer[b]; spore_timer[b] = tmp_i
+	tmp_i = brain_state[a]; brain_state[a] = brain_state[b]; brain_state[b] = tmp_i
+	tmp_i = target_i[a];    target_i[a]    = target_i[b];    target_i[b]    = tmp_i
+	tmp_f = sense_radius[a]; sense_radius[a] = sense_radius[b]; sense_radius[b] = tmp_f
 
 
 func _clear_slot(i: int) -> void:
@@ -427,3 +605,4 @@ func _clear_slot(i: int) -> void:
 	mutation_rate[i] = 0.0; resistance[i] = 0.0; virulence[i] = 0.0
 	age[i] = 0; max_age[i] = 0; agent_type[i] = 0
 	flags[i] = 0; dead_timer[i] = 0; run_timer[i] = 0; spore_timer[i] = 0
+	brain_state[i] = 0; target_i[i] = -1; sense_radius[i] = 0.0

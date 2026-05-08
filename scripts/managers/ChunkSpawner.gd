@@ -12,6 +12,7 @@ var _camera_world_pos: Vector2 = Vector2.ZERO
 var _last_valid_camera_pos: Vector2 = Vector2.ZERO
 var spawn_bacteria_enabled: bool = true
 var spawn_virus_enabled: bool = true
+var spawn_protozoa_enabled: bool = false
 
 
 func _ready() -> void:
@@ -50,7 +51,9 @@ func _maybe_spawn() -> void:
 			continue
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		if spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
+		if spawn_protozoa_enabled and randf() < 0.04:
+			AgentPool.spawn_protozoa(pos.x, pos.y)
+		elif spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
 			AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
 		elif spawn_virus_enabled:
 			AgentPool.spawn_virus(pos.x, pos.y)
