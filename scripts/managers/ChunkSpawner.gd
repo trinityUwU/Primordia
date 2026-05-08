@@ -54,7 +54,7 @@ func _maybe_spawn() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		var roll: float = randf()
-		if spawn_protozoa_enabled and _can_spawn_protozoa_at(pos) and roll < 0.15:
+		if spawn_protozoa_enabled and roll < 0.15:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
 		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and roll < 0.08:
 			AgentPool.spawn_plant(pos.x, pos.y)
