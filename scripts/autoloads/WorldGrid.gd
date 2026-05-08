@@ -8,6 +8,20 @@ const FIELD_KEYS: Array[String] = [
 	"nutrients", "water", "temperature", "oxygen", "ph", "toxins", "light"
 ]
 
+const BIOME_WATER: int = 0
+const BIOME_EARTH: int = 1
+const BIOME_GRASS: int = 2
+const BIOME_WOOD:  int = 3
+const BIOME_ROCK:  int = 4
+
+const BIOME_DEFAULTS: Dictionary = {
+	0: { "nutrients": 0.1, "water": 1.0, "temperature": 15.0, "oxygen": 0.15, "ph": 7.5, "toxins": 0.0, "light": 0.5 },
+	1: { "nutrients": 0.5, "water": 0.4, "temperature": 20.0, "oxygen": 0.21, "ph": 6.8, "toxins": 0.0, "light": 0.9 },
+	2: { "nutrients": 0.7, "water": 0.6, "temperature": 18.0, "oxygen": 0.25, "ph": 6.5, "toxins": 0.0, "light": 1.0 },
+	3: { "nutrients": 0.8, "water": 0.7, "temperature": 16.0, "oxygen": 0.28, "ph": 5.5, "toxins": 0.0, "light": 0.4 },
+	4: { "nutrients": 0.05, "water": 0.1, "temperature": 12.0, "oxygen": 0.21, "ph": 8.0, "toxins": 0.0, "light": 0.8 },
+}
+
 const DEFAULT_VALUES: Dictionary = {
 	"nutrients": 0.5,
 	"water": 0.7,
@@ -39,16 +53,17 @@ func _ready() -> void:
 
 # ── Chunk management ─────────────────────────────────────────────────────────
 
-func get_or_create_chunk(chunk_coord: Vector2i) -> Dictionary:
+func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dictionary:
 	if _chunks.has(chunk_coord):
 		_chunks[chunk_coord]["last_active"] = _wall_clock
 		return _chunks[chunk_coord]
+	var defaults: Dictionary = BIOME_DEFAULTS[biome]
 	var fields: Dictionary = {}
 	var cells: int = CHUNK_SIZE * CHUNK_SIZE
 	for key in FIELD_KEYS:
 		var arr: Array[float] = []
 		arr.resize(cells)
-		arr.fill(DEFAULT_VALUES[key])
+		arr.fill(defaults[key])
 		fields[key] = arr
 	var buf: Dictionary = {}
 	for key in FIELD_KEYS:
@@ -56,9 +71,24 @@ func get_or_create_chunk(chunk_coord: Vector2i) -> Dictionary:
 		arr.resize(cells)
 		arr.fill(0.0)
 		buf[key] = arr
-	var chunk: Dictionary = { "fields": fields, "_buf": buf, "last_active": _wall_clock }
+	var chunk: Dictionary = { "fields": fields, "_buf": buf, "biome": biome, "last_active": _wall_clock }
 	_chunks[chunk_coord] = chunk
 	return chunk
+
+
+func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
+	var chunk: Dictionary = get_or_create_chunk(chunk_coord, biome)
+	chunk["biome"] = biome
+	var defaults: Dictionary = BIOME_DEFAULTS[biome]
+	for key in FIELD_KEYS:
+		chunk["fields"][key].fill(defaults[key])
+		chunk["_buf"][key].fill(0.0)
+
+
+func get_chunk_biome(chunk_coord: Vector2i) -> int:
+	if not _chunks.has(chunk_coord):
+		return BIOME_EARTH
+	return _chunks[chunk_coord].get("biome", BIOME_EARTH)
 
 
 func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) -> void:

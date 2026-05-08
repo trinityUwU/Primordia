@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://worldmain"]
+[gd_scene load_steps=9 format=3 uid="uid://worldmain"]
 
 [ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
@@ -7,6 +7,7 @@
 [ext_resource type="Shader" path="res://shaders/grid_debug.gdshader" id="5_shader"]
 [ext_resource type="PackedScene" uid="uid://agentlayer" path="res://scenes/AgentLayer.tscn" id="6_agentlayer"]
 [ext_resource type="PackedScene" uid="uid://spawncontrolpanel" path="res://scenes/ui/SpawnControlPanel.tscn" id="7_scp"]
+[ext_resource type="PackedScene" uid="uid://biomerenderer" path="res://scenes/BiomeRenderer.tscn" id="8_br"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("5_shader")
@@ -15,6 +16,8 @@ shader_parameter/grid_color = Color(1, 1, 1, 0.1)
 
 [node name="World" type="Node2D"]
 script = ExtResource("1_world")
+
+[node name="BiomeRenderer" parent="." instance=ExtResource("8_br")]
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(1024, 512)

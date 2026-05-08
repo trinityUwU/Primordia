@@ -52,6 +52,27 @@
 
 ---
 
+## Phase 3b — Environnement & Biomes
+
+### Biome system
+- [~] BiomeMap : chaque chunk a un type (eau, terre, herbe, bois, roche)
+- [ ] Valeurs initiales par biome (nutrients, water, temperature, oxygen, ph, toxins, light)
+- [ ] Limites de régénération par biome (eau régénère water vite, forêt régénère nutrients)
+- [ ] Impact spawn : ChunkSpawner filtre par biome (anaérobies en eau, etc.)
+
+### Rendu biomes
+- [~] Flat color par biome (fond coloré selon type de chunk)
+- [ ] Shader texturing procédural par biome (grain, pattern, variation noise)
+- [ ] Transitions douces entre biomes (blend aux bordures de chunk)
+- [ ] Overlay heatmap : nutrients / toxins / temperature (toggle)
+
+### Éditeur in-game
+- [ ] Outil peinture : sélectionner un biome et peindre des chunks au clic
+- [ ] UI palette biomes (panneau latéral gauche)
+- [ ] Raccourci clavier pour activer/désactiver le mode éditeur
+
+---
+
 ## Phase 3 — Macro Organismes & Chaîne Alimentaire
 
 ### Stats par spécimen
@@ -136,9 +157,7 @@
 - [ ] Zoom micro : cellules visibles, noyaux, membrane
 
 ### Environnement / Biomes
-- [ ] Système de biomes : terre, herbe, bois, eau
-- [ ] Gaz et matériaux par zone
-- [ ] Éditeur d'environnement : dessiner des zones, poser ressources manuellement
+- [x] Biomes visuels : déplacé en Phase 3b
 
 ---
 
