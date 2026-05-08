@@ -22,6 +22,33 @@ func _on_tick(tick: int) -> void:
 	if tick % 10 != 0:
 		return
 	_update_active_zone()
+	# Pressure valve: if pool is near SOFT_CAP, force-aggregate outer chunks
+	if AgentPool._alive_count > AgentPool.SOFT_CAP * 0.85:
+		_force_aggregate_overflow()
+
+
+func _force_aggregate_overflow() -> void:
+	# Find chunks with agents that are NOT in the active set and aggregate them
+	var camera: Camera2D = _get_camera()
+	if camera == null:
+		return
+	var cam_pos: Vector2 = camera.global_position
+	var chunk_distances: Array = []
+	for coord in _last_active_set:
+		if _active_set.has(coord):
+			continue
+		var world_center: Vector2 = Vector2(coord.x + 0.5, coord.y + 0.5) * CHUNK_PX
+		var dist: float = cam_pos.distance_squared_to(world_center)
+		chunk_distances.append([dist, coord])
+	chunk_distances.sort_custom(func(a, b): return a[0] > b[0])  # farthest first
+	var freed: int = 0
+	for entry in chunk_distances:
+		if AgentPool._alive_count <= AgentPool.SOFT_CAP * 0.7:
+			break
+		_aggregate_chunk(entry[1])
+		freed += 1
+		if freed >= 3:
+			break
 
 
 func _update_active_zone() -> void:

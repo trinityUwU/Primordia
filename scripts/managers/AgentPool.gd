@@ -18,6 +18,7 @@ const FLAG_GRAM_POS: int = 2
 const FLAG_SPORE: int = 4
 
 var TICK_STRIDE: int = 2
+const SOFT_CAP: int = 8000  # max individus simulés simultanément
 const DEAD_DECAY_TICKS: int = 300
 const SPORE_MIN_TIMER: int = 100
 const SPATIAL_CELL: float = 64.0
@@ -353,13 +354,13 @@ func _process(_delta: float) -> void:
 func _on_tick(tick: int) -> void:
 	# Adapt stride to keep processing load proportional
 	if tick % 30 == 0:
-		if _alive_count > 20000:
+		if _alive_count > SOFT_CAP * 0.75:
 			TICK_STRIDE = 8
-		elif _alive_count > 10000:
+		elif _alive_count > SOFT_CAP * 0.5:
 			TICK_STRIDE = 6
-		elif _alive_count > 5000:
+		elif _alive_count > SOFT_CAP * 0.3:
 			TICK_STRIDE = 4
-		elif _alive_count > 2000:
+		elif _alive_count > SOFT_CAP * 0.15:
 			TICK_STRIDE = 3
 		else:
 			TICK_STRIDE = 2
@@ -506,10 +507,16 @@ func _check_sporulation(i: int) -> void:
 func _check_division(i: int) -> void:
 	if energy[i] < division_threshold[i]:
 		return
-	if _alive_count >= MAX_AGENTS:
+	if _alive_count >= SOFT_CAP:
 		return
-	# Throttle division when population is high — reduces exponential growth
-	if _alive_count > 1000 and randf() > (1.0 - float(_alive_count) / float(MAX_AGENTS)):
+	# Local density check — no division if > 8 bacteria in 64px
+	var local: int = 0
+	var sx: int = floori(pos_x[i] / SPATIAL_CELL)
+	var sy: int = floori(pos_y[i] / SPATIAL_CELL)
+	var cell: Vector2i = Vector2i(sx, sy)
+	if _spatial.has(cell):
+		local = _spatial[cell].size()
+	if local >= 8:
 		return
 	var angle: float = randf() * TAU
 	var child_genome: Dictionary = _mutate_genome_inline(i)
