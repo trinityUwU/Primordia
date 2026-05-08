@@ -427,7 +427,8 @@ func _on_tick(tick: int) -> void:
 			TICK_STRIDE = 3
 		else:
 			TICK_STRIDE = 2
-	_rebuild_spatial()
+	if tick % 2 == 0:
+		_rebuild_spatial()
 	_process_agents(tick)
 	_needs_compact = true
 	_dirty = true

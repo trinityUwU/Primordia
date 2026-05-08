@@ -90,7 +90,37 @@ func _world_to_screen(world_pos: Vector2, camera: Camera2D) -> Vector2:
 
 func _build_clusters(cull_rect: Rect2, camera: Camera2D, cell_size: float) -> Dictionary:
 	var cells: Dictionary = {}
+	var sc: float = AgentPool.SPATIAL_CELL
+	var min_sc: Vector2i = Vector2i(
+		floori(cull_rect.position.x / sc),
+		floori(cull_rect.position.y / sc)
+	)
+	var max_sc: Vector2i = Vector2i(
+		ceili(cull_rect.end.x / sc),
+		ceili(cull_rect.end.y / sc)
+	)
+	for sy in range(min_sc.y, max_sc.y + 1):
+		for sx in range(min_sc.x, max_sc.x + 1):
+			var spatial_cell: Vector2i = Vector2i(sx, sy)
+			if not AgentPool._spatial.has(spatial_cell):
+				continue
+			for i in AgentPool._spatial[spatial_cell]:
+				var px: float = AgentPool.pos_x[i]
+				var py: float = AgentPool.pos_y[i]
+				var screen_pos: Vector2 = _world_to_screen(Vector2(px, py), camera)
+				var cell: Vector2i = Vector2i(
+					int(screen_pos.x / cell_size),
+					int(screen_pos.y / cell_size)
+				)
+				if not cells.has(cell):
+					cells[cell] = []
+				cells[cell].append(i)
+	# Include recently dead (fading out) in viewport — not in spatial hash
 	for i in AgentPool.count:
+		if AgentPool.flags[i] & AgentPool.FLAG_ALIVE:
+			continue
+		if AgentPool.dead_timer[i] <= 0:
+			continue
 		var px: float = AgentPool.pos_x[i]
 		var py: float = AgentPool.pos_y[i]
 		if not cull_rect.has_point(Vector2(px, py)):
