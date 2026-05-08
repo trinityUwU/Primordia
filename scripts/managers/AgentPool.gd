@@ -15,6 +15,7 @@ const SPATIAL_CELL: float = 64.0
 var count: int = 0
 var _alive_count: int = 0
 var _dirty: bool = false
+var _needs_compact: bool = false
 var _spatial: Dictionary = {}
 
 var pos_x: PackedFloat32Array
@@ -192,10 +193,16 @@ func get_agents_in_radius(px: float, py: float, radius: float) -> PackedInt32Arr
 	return result
 
 
+func _process(_delta: float) -> void:
+	if _needs_compact:
+		compact_dead()
+		_needs_compact = false
+
+
 func _on_tick(tick: int) -> void:
 	_rebuild_spatial()
 	_process_agents(tick)
-	compact_dead()
+	_needs_compact = true
 	_dirty = true
 
 

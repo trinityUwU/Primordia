@@ -44,10 +44,12 @@ func _setup_shader() -> void:
 
 
 func _setup_tooltip() -> void:
+	var canvas_layer: CanvasLayer = CanvasLayer.new()
+	canvas_layer.layer = 10
+	add_child(canvas_layer)
 	_tooltip = Label.new()
 	_tooltip.visible = false
-	_tooltip.z_index = 100
-	add_child(_tooltip)
+	canvas_layer.add_child(_tooltip)
 
 
 func _process(_delta: float) -> void:
