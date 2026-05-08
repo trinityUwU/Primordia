@@ -3,6 +3,24 @@
 
 ---
 
+## Phase 0 — Recherche scientifique (OBLIGATOIRE avant tout code de simulation)
+
+> Chaque agent de recherche produit un fichier `research/YYYY-MM-DD_HH-MM_<sujet>.md`
+> Format obligatoire : titre · timestamp · sujet · état (draft/final) · sources · synthèse actionnable
+
+- [ ] Agent 01 — Microbiologie bactérienne : cycles de vie, chimiotaxie, sporulation, résistance, gram+/-
+- [ ] Agent 02 — Virologie : réplication, souches ARN/ADN, mutation, R0, immunité mémoire
+- [ ] Agent 03 — Épidémiologie : modèles SIR/SEIR, taux de propagation, herd immunity, vecteurs
+- [ ] Agent 04 — Chaîne alimentaire & écologie : niveaux trophiques, Lotka-Volterra, extinction, équilibre
+- [ ] Agent 05 — IA collective : Boids, stigmergie, phéromones, meutes, colonies, comportements émergents
+- [ ] Agent 06 — Génétique & évolution : mutation, sélection naturelle, dérive génétique, spéciation
+- [ ] Agent 07 — Anatomie fonctionnelle : systèmes sanguin/musculaire/nerveux, fatigue, blessures
+- [ ] Agent 08 — Physique de simulation : diffusion, gradient chimique, thermodynamique cellulaire
+- [ ] Agent 09 — Parasitisme & symbiose : types de relations inter-espèces, co-évolution
+- [ ] Agent 10 — Références jeux existants : Spore, Plague Inc, Species ALRE, Dwarf Fortress bio-layer
+
+---
+
 ## Phase 1 — Core Engine
 
 - [ ] Initialiser le projet Godot 4 (`project.godot`, structure dossiers)
