@@ -27,8 +27,16 @@ func _update_label() -> void:
 	var tick_rate_real: float = SimulationClock.get_sim_fps()
 	var mouse_grid: Vector2i = _get_mouse_grid_coords()
 	var counts: Dictionary = _count_by_type()
+	var heatmap_node: Node = get_tree().get_first_node_in_group("heatmap_overlay")
+	var heatmap_str: String = ""
+	if heatmap_node:
+		var hm := heatmap_node as Node
+		var lbl: Array[String] = ["OFF", "Nutrients", "Toxins", "Temperature"]
+		var m: int = hm.get("mode") if hm.get("mode") != null else 0
+		if m != 0:
+			heatmap_str = "\nHeatmap: " + lbl[m]
 	_label.text = (
-		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nTotal: %d\nZoom: %d\nGrid: %d,%d" % [
+		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nTotal: %d\nZoom: %d\nGrid: %d,%d%s" % [
 			int(render_fps),
 			tick_rate_real,
 			counts.get(AgentPool.TYPE_BACTERIUM, 0),
@@ -37,6 +45,7 @@ func _update_label() -> void:
 			_zoom_level,
 			mouse_grid.x,
 			mouse_grid.y,
+			heatmap_str,
 		]
 	)
 
