@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3 uid="uid://worldmain"]
+[gd_scene load_steps=7 format=3 uid="uid://worldmain"]
 
 [ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
 [ext_resource type="PackedScene" uid="uid://timecontrolbar" path="res://scenes/ui/TimeControlBar.tscn" id="3_tcbar"]
 [ext_resource type="PackedScene" uid="uid://debugoverlay" path="res://scenes/ui/DebugOverlay.tscn" id="4_dbg"]
 [ext_resource type="Shader" path="res://shaders/grid_debug.gdshader" id="5_shader"]
+[ext_resource type="PackedScene" uid="uid://agentlayer" path="res://scenes/AgentLayer.tscn" id="6_agentlayer"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("5_shader")
@@ -26,6 +27,8 @@ visible = false
 material = SubResource("ShaderMaterial_grid")
 color = Color(0, 0, 0, 0)
 size = Vector2(2048, 2048)
+
+[node name="AgentLayer" parent="." instance=ExtResource("6_agentlayer")]
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 10

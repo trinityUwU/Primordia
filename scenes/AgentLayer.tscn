@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://agentlayer"]
+
+[ext_resource type="Script" path="res://scripts/rendering/AgentRenderer.gd" id="1_renderer"]
+
+[node name="AgentLayer" type="Node2D"]
+
+[node name="AgentRenderer" type="Node2D" parent="."]
+script = ExtResource("1_renderer")
