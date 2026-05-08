@@ -260,7 +260,7 @@ func spawn_plant(px: float, py: float) -> int:
 	energy[i]            = 1.0
 	speed[i]             = 0.0
 	size_arr[i]          = 3.0
-	metabolism[i]        = 0.005
+	metabolism[i]        = 0.002
 	division_threshold[i]= 2.0
 	mutation_rate[i]     = 0.005
 	resistance[i]        = 0.3
@@ -293,7 +293,7 @@ func spawn_fungi(px: float, py: float) -> int:
 	energy[i]            = 0.8
 	speed[i]             = 0.0
 	size_arr[i]          = 2.0
-	metabolism[i]        = 0.003
+	metabolism[i]        = 0.008
 	division_threshold[i]= 1.8
 	mutation_rate[i]     = 0.008
 	resistance[i]        = 0.5
@@ -650,9 +650,9 @@ func _protozoa_idle(i: int) -> void:
 		var angle: float = randf() * TAU
 		dir_x[i] = cos(angle)
 		dir_y[i] = sin(angle)
-		run_timer[i] = randi_range(20, 60)
-	pos_x[i] += dir_x[i] * (speed[i] * 0.3 / 60.0)
-	pos_y[i] += dir_y[i] * (speed[i] * 0.3 / 60.0)
+		run_timer[i] = randi_range(10, 30)
+	pos_x[i] += dir_x[i] * (speed[i] * 0.8 / 60.0)
+	pos_y[i] += dir_y[i] * (speed[i] * 0.8 / 60.0)
 	# Scan for nearby bacteria
 	var prey: int = _find_prey(i)
 	if prey >= 0:
@@ -731,8 +731,8 @@ func _tick_plant(i: int) -> void:
 	# Photosynthesis: consume light + water, produce nutrients + oxygen
 	var light: float = WorldGrid.get_cell_value(gx, gy, "light")
 	var water: float = WorldGrid.get_cell_value(gx, gy, "water")
-	if light > 0.3 and water > 0.2:
-		var produced: float = light * 0.04
+	if light > 0.15 and water > 0.1:
+		var produced: float = light * 0.08  # was 0.04
 		energy[i] = minf(energy[i] + produced * 0.5, division_threshold[i] * 1.5)
 		WorldGrid.set_cell_value(gx, gy, "nutrients",
 			minf(WorldGrid.get_cell_value(gx, gy, "nutrients") + produced * 0.3, 1.0))
@@ -784,17 +784,31 @@ func _tick_fungi(i: int) -> void:
 	if run_timer[i] <= 0:
 		run_timer[i] = randi_range(40, 100)
 		_fungi_decompose(i)
-	# Spread
+	# Spread only if there are dead agents nearby to decompose
 	if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
-		var angle: float = randf() * TAU
-		var dist: float = randf_range(8.0, 32.0)
-		var ci: int = spawn_fungi(
-			pos_x[i] + cos(angle) * dist,
-			pos_y[i] + sin(angle) * dist
-		)
-		if ci >= 0:
-			energy[i] -= division_threshold[i] * 0.5
-			energy[ci] = 0.4
+		var has_dead_nearby: bool = false
+		var fx: float = pos_x[i]
+		var fy: float = pos_y[i]
+		for j in count:
+			if flags[j] & FLAG_ALIVE:
+				continue
+			if dead_timer[j] <= 0:
+				continue
+			var ddx: float = pos_x[j] - fx
+			var ddy: float = pos_y[j] - fy
+			if ddx * ddx + ddy * ddy < 4096.0:  # 64px
+				has_dead_nearby = true
+				break
+		if has_dead_nearby:
+			var angle: float = randf() * TAU
+			var dist: float = randf_range(8.0, 32.0)
+			var ci: int = spawn_fungi(
+				pos_x[i] + cos(angle) * dist,
+				pos_y[i] + sin(angle) * dist
+			)
+			if ci >= 0:
+				energy[i] -= division_threshold[i] * 0.5
+				energy[ci] = 0.4
 
 
 func _fungi_decompose(i: int) -> void:

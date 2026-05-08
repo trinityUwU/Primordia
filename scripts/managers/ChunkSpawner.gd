@@ -38,7 +38,7 @@ func _seed_world() -> void:
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
 	# Seed a few plants and fungi regardless of toggles
-	for _i in 5:
+	for _i in 15:
 		var pos: Vector2 = _random_spawn_pos()
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
@@ -86,9 +86,9 @@ func _maybe_spawn() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		# Each special type rolls independently, bacteria is fallback
-		if spawn_protozoa_enabled and randf() < 0.12:
+		if spawn_protozoa_enabled and randf() < 0.12 and AgentPool._type_counts[AgentPool.TYPE_BACTERIUM] > 200:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
-		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and randf() < 0.20:
+		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and randf() < 0.40:
 			AgentPool.spawn_plant(pos.x, pos.y)
 		elif spawn_fungi_enabled and _can_spawn_fungi_at(pos) and randf() < 0.15:
 			AgentPool.spawn_fungi(pos.x, pos.y)
@@ -123,7 +123,7 @@ func _can_spawn_plant_at(pos: Vector2) -> bool:
 		return false
 	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
-	return WorldGrid.get_cell_value(gx, gy, "light") > 0.3
+	return WorldGrid.get_cell_value(gx, gy, "light") > 0.15
 
 
 func _can_spawn_fungi_at(pos: Vector2) -> bool:
