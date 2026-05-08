@@ -1,6 +1,6 @@
 extends Node
 
-const SPAWN_EXTRA: float = 5000.0
+const SPAWN_EXTRA: float = 500.0
 const MAX_AGENTS: int = 2000
 const MAX_DENSITY_PER_CHUNK: float = 2.0
 const SPAWN_PER_TICK: int = 3
