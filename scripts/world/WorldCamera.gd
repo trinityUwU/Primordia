@@ -5,6 +5,7 @@ signal zoom_level_changed(level: int)
 var ZOOM_LEVELS: Array[float] = [0.5, 1.5, 4.0]
 const ZOOM_SPEED: float = 8.0
 const PAN_BUTTON: int = MOUSE_BUTTON_MIDDLE
+const PAN_SPEED: float = 400.0
 
 var _target_zoom: float = 1.5
 var _current_level: int = 1
@@ -36,7 +37,22 @@ func _process(delta: float) -> void:
 	var current_zoom: float = zoom.x
 	var new_zoom: float = lerpf(current_zoom, _target_zoom, ZOOM_SPEED * delta)
 	zoom = Vector2(new_zoom, new_zoom)
+	_handle_wasd(delta)
 	_clamp_position()
+
+
+func _handle_wasd(delta: float) -> void:
+	var dir: Vector2 = Vector2.ZERO
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		dir.y -= 1.0
+	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		dir.y += 1.0
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		dir.x -= 1.0
+	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		dir.x += 1.0
+	if dir != Vector2.ZERO:
+		global_position += dir.normalized() * PAN_SPEED * delta / zoom.x
 
 
 func _input(event: InputEvent) -> void:
