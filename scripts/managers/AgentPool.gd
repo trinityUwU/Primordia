@@ -60,6 +60,7 @@ var sense_radius: PackedFloat32Array
 
 
 var _alloc_size: int = 0  # current allocated capacity
+var _chunk_counts: Dictionary = {}  # Vector2i → PackedInt32Array[5]
 
 func _ready() -> void:
 	_compute_max_agents()
@@ -153,6 +154,11 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 	var i: int = _find_free_slot()
 	if i < 0:
 		return -1
+	var chunk_coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_BACTERIUM)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_BACTERIUM)
+	if current >= capacity:
+		return -1
 	var angle: float = randf() * TAU
 	var gram_pos: bool = genome.get("gram_positive", true)
 	var f: int = FLAG_ALIVE
@@ -181,12 +187,18 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 		count += 1
 	_alive_count += 1
 	_type_counts[TYPE_BACTERIUM] += 1
+	_update_chunk_count(px, py, TYPE_BACTERIUM, 1)
 	return i
 
 
 func spawn_virus(px: float, py: float) -> int:
 	var i: int = _find_free_slot()
 	if i < 0:
+		return -1
+	var chunk_coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_VIRUS)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_VIRUS)
+	if current >= capacity:
 		return -1
 	var angle: float = randf() * TAU
 	pos_x[i]             = px
@@ -212,12 +224,18 @@ func spawn_virus(px: float, py: float) -> int:
 		count += 1
 	_alive_count += 1
 	_type_counts[TYPE_VIRUS] += 1
+	_update_chunk_count(px, py, TYPE_VIRUS, 1)
 	return i
 
 
 func spawn_protozoa(px: float, py: float) -> int:
 	var i: int = _find_free_slot()
 	if i < 0:
+		return -1
+	var chunk_coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_PROTOZOA)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_PROTOZOA)
+	if current >= capacity:
 		return -1
 	var angle: float = randf() * TAU
 	pos_x[i]             = px
@@ -227,8 +245,8 @@ func spawn_protozoa(px: float, py: float) -> int:
 	energy[i]            = 3.0
 	speed[i]             = 50.0
 	size_arr[i]          = 2.5
-	metabolism[i]        = 0.003
-	division_threshold[i]= 1.5
+	metabolism[i]        = 0.002
+	division_threshold[i]= 1.2
 	mutation_rate[i]     = 0.01
 	resistance[i]        = 0.8
 	virulence[i]         = 0.9
@@ -246,12 +264,18 @@ func spawn_protozoa(px: float, py: float) -> int:
 		count += 1
 	_alive_count += 1
 	_type_counts[TYPE_PROTOZOA] += 1
+	_update_chunk_count(px, py, TYPE_PROTOZOA, 1)
 	return i
 
 
 func spawn_plant(px: float, py: float) -> int:
 	var i: int = _find_free_slot()
 	if i < 0:
+		return -1
+	var chunk_coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_PLANT)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_PLANT)
+	if current >= capacity:
 		return -1
 	pos_x[i]             = px
 	pos_y[i]             = py
@@ -279,12 +303,18 @@ func spawn_plant(px: float, py: float) -> int:
 		count += 1
 	_alive_count += 1
 	_type_counts[TYPE_PLANT] += 1
+	_update_chunk_count(px, py, TYPE_PLANT, 1)
 	return i
 
 
 func spawn_fungi(px: float, py: float) -> int:
 	var i: int = _find_free_slot()
 	if i < 0:
+		return -1
+	var chunk_coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_FUNGI)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_FUNGI)
+	if current >= capacity:
 		return -1
 	pos_x[i]             = px
 	pos_y[i]             = py
@@ -312,6 +342,7 @@ func spawn_fungi(px: float, py: float) -> int:
 		count += 1
 	_alive_count += 1
 	_type_counts[TYPE_FUNGI] += 1
+	_update_chunk_count(px, py, TYPE_FUNGI, 1)
 	return i
 
 
@@ -322,6 +353,7 @@ func kill(i: int) -> void:
 	_alive_count -= 1
 	if agent_type[i] < _type_counts.size():
 		_type_counts[agent_type[i]] -= 1
+	_update_chunk_count(pos_x[i], pos_y[i], agent_type[i], -1)
 	dead_timer[i] = DEAD_DECAY_TICKS
 	_deaths_tick += 1
 
@@ -530,7 +562,7 @@ func _consume_nutrients(i: int) -> void:
 
 	# Toxin production (metabolic waste)
 	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
-	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + 0.05, 1.0))
+	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + 0.003, 1.0))
 	energy[i] = minf(energy[i] + uptake * 2.0, 2.0)
 
 
@@ -551,14 +583,11 @@ func _check_division(i: int) -> void:
 		return
 	if _alive_count >= SOFT_CAP:
 		return
-	# Local density check — no division if > 8 bacteria in 64px
-	var local: int = 0
-	var sx: int = floori(pos_x[i] / SPATIAL_CELL)
-	var sy: int = floori(pos_y[i] / SPATIAL_CELL)
-	var cell: Vector2i = Vector2i(sx, sy)
-	if _spatial.has(cell):
-		local = _spatial[cell].size()
-	if local >= 8:
+	# Chunk capacity check
+	var chunk_coord: Vector2i = Vector2i(floori(pos_x[i] / 256.0), floori(pos_y[i] / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_BACTERIUM)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_BACTERIUM)
+	if current >= capacity:
 		return
 	var angle: float = randf() * TAU
 	var child_genome: Dictionary = _mutate_genome_inline(i)
@@ -710,6 +739,12 @@ func _protozoa_reproduce(i: int) -> void:
 	if _alive_count >= SOFT_CAP:
 		brain_state[i] = STATE_IDLE
 		return
+	var chunk_coord: Vector2i = Vector2i(floori(pos_x[i] / 256.0), floori(pos_y[i] / 256.0))
+	var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_PROTOZOA)
+	var current: int = _get_chunk_type_count(chunk_coord, TYPE_PROTOZOA)
+	if current >= capacity:
+		brain_state[i] = STATE_IDLE
+		return
 	var angle: float = randf() * TAU
 	var ci: int = spawn_protozoa(
 		pos_x[i] + cos(angle) * 10.0,
@@ -740,6 +775,7 @@ func _tick_plant(i: int) -> void:
 			minf(WorldGrid.get_cell_value(gx, gy, "oxygen") + produced * 0.2, 0.4))
 		WorldGrid.set_cell_value(gx, gy, "water",
 			maxf(water - produced * 0.1, 0.0))
+		_o2_produced_tick += produced * 0.2
 	else:
 		energy[i] -= metabolism[i]
 		if energy[i] <= 0.0:
@@ -750,6 +786,11 @@ func _tick_plant(i: int) -> void:
 	if run_timer[i] <= 0:
 		run_timer[i] = randi_range(100, 300)
 		if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
+			var chunk_coord: Vector2i = Vector2i(floori(pos_x[i] / 256.0), floori(pos_y[i] / 256.0))
+			var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_PLANT)
+			var current: int = _get_chunk_type_count(chunk_coord, TYPE_PLANT)
+			if current >= capacity:
+				return
 			var angle: float = randf() * TAU
 			var dist: float = randf_range(16.0, 48.0)
 			var ci: int = spawn_plant(
@@ -784,31 +825,25 @@ func _tick_fungi(i: int) -> void:
 	if run_timer[i] <= 0:
 		run_timer[i] = randi_range(40, 100)
 		_fungi_decompose(i)
-	# Spread only if there are dead agents nearby to decompose
+	# Spread only if there are dead agents nearby (high nutrients = recent deaths)
 	if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
-		var has_dead_nearby: bool = false
-		var fx: float = pos_x[i]
-		var fy: float = pos_y[i]
-		for j in count:
-			if flags[j] & FLAG_ALIVE:
-				continue
-			if dead_timer[j] <= 0:
-				continue
-			var ddx: float = pos_x[j] - fx
-			var ddy: float = pos_y[j] - fy
-			if ddx * ddx + ddy * ddy < 4096.0:  # 64px
-				has_dead_nearby = true
-				break
-		if has_dead_nearby:
-			var angle: float = randf() * TAU
-			var dist: float = randf_range(8.0, 32.0)
-			var ci: int = spawn_fungi(
-				pos_x[i] + cos(angle) * dist,
-				pos_y[i] + sin(angle) * dist
-			)
-			if ci >= 0:
-				energy[i] -= division_threshold[i] * 0.5
-				energy[ci] = 0.4
+		var chunk_coord: Vector2i = Vector2i(floori(pos_x[i] / 256.0), floori(pos_y[i] / 256.0))
+		var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_FUNGI)
+		var current: int = _get_chunk_type_count(chunk_coord, TYPE_FUNGI)
+		if current < capacity:
+			var gx_f: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
+			var gy_f: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
+			var local_n: float = WorldGrid.get_cell_value(gx_f, gy_f, "nutrients")
+			if local_n > 0.4:
+				var angle: float = randf() * TAU
+				var dist: float = randf_range(8.0, 32.0)
+				var ci: int = spawn_fungi(
+					pos_x[i] + cos(angle) * dist,
+					pos_y[i] + sin(angle) * dist
+				)
+				if ci >= 0:
+					energy[i] -= division_threshold[i] * 0.5
+					energy[ci] = 0.4
 
 
 func _fungi_decompose(i: int) -> void:
@@ -913,3 +948,21 @@ func _clear_slot(i: int) -> void:
 	age[i] = 0; max_age[i] = 0; agent_type[i] = 0
 	flags[i] = 0; dead_timer[i] = 0; run_timer[i] = 0; spore_timer[i] = 0
 	brain_state[i] = 0; target_i[i] = -1; sense_radius[i] = 0.0
+
+
+# ── Chunk counting helpers ────────────────────────────────────────────────────
+
+func _get_chunk_type_count(chunk_coord: Vector2i, type: int) -> int:
+	if not _chunk_counts.has(chunk_coord):
+		return 0
+	return _chunk_counts[chunk_coord][type]
+
+
+func _update_chunk_count(px: float, py: float, type: int, delta: int) -> void:
+	var coord: Vector2i = Vector2i(floori(px / 256.0), floori(py / 256.0))
+	if not _chunk_counts.has(coord):
+		var arr: PackedInt32Array = PackedInt32Array()
+		arr.resize(5)
+		arr.fill(0)
+		_chunk_counts[coord] = arr
+	_chunk_counts[coord][type] += delta

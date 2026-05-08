@@ -29,6 +29,15 @@ const BIOME_REGEN_CAP: Dictionary = {
 	4: { "nutrients": 0.08, "water": 0.15, "oxygen": 0.22 },
 }
 
+const BIOME_CAPACITY: Dictionary = {
+	# max agents per chunk per type: [bacteria, virus, protozoa, plant, fungi]
+	0: [15, 5, 3, 2, 0],    # WATER — some bacteria, few virus, minimal plants, no fungi
+	1: [25, 8, 5, 8, 4],    # EARTH — moderate all
+	2: [40, 10, 8, 15, 6],  # GRASS — rich, lots of life
+	3: [35, 8, 6, 12, 10],  # WOOD — rich, lots of fungi/plants
+	4: [3, 2, 1, 0, 0],     # ROCK — almost sterile
+}
+
 const BIOME_DEFAULTS: Dictionary = {
 	# WATER — ocean/lake: dissolved O2, alkaline pH, low nutrients (life supported by microbe recycling)
 	0: { "nutrients": 0.15, "water": 1.0, "temperature": 15.0, "oxygen": 0.18, "ph": 8.1, "toxins": 0.0, "light": 0.6 },
@@ -271,4 +280,22 @@ func _regenerate_fields() -> void:
 		var tox_arr: Array = fields["toxins"]
 		for i in tox_arr.size():
 			if tox_arr[i] > 0.0:
-				tox_arr[i] = maxf(tox_arr[i] - 0.0002, 0.0)
+				tox_arr[i] = maxf(tox_arr[i] - 0.002, 0.0)
+
+
+# ── Chunk carrying capacity ───────────────────────────────────────────────────
+
+func get_chunk_capacity(chunk_coord: Vector2i, agent_type: int) -> int:
+	var biome: int = get_chunk_biome(chunk_coord)
+	var base: int = BIOME_CAPACITY[biome][agent_type]
+	# Scale by current average nutrients in chunk (0-1 range)
+	var chunk: Dictionary = get_or_create_chunk(chunk_coord)
+	var nutrients_arr: Array = chunk["fields"]["nutrients"]
+	var avg_n: float = 0.0
+	# Sample 16 cells instead of all 1024 for performance
+	for s in 16:
+		avg_n += nutrients_arr[s * 64]  # every 64th cell
+	avg_n /= 16.0
+	# Scale capacity: at 0 nutrients → 20% capacity, at 1.0 → 100%
+	var scale: float = 0.2 + 0.8 * clampf(avg_n, 0.0, 1.0)
+	return int(base * scale)
