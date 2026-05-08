@@ -186,5 +186,17 @@ func _process(delta: float) -> void:
 		_evict_stale_chunks()
 
 
-func _on_tick(_tick: int) -> void:
-	pass
+func _on_tick(tick: int) -> void:
+	if tick % 30 == 0:
+		_regenerate_nutrients()
+
+
+func _regenerate_nutrients() -> void:
+	for coord in _active_chunks:
+		if not _chunks.has(coord):
+			continue
+		var fields: Dictionary = _chunks[coord]["fields"]
+		var arr: Array = fields["nutrients"]
+		for i in arr.size():
+			if arr[i] < 0.8:
+				arr[i] = minf(arr[i] + 0.003, 0.8)
