@@ -89,24 +89,13 @@ func _can_spawn_at(pos: Vector2) -> bool:
 
 
 func _can_spawn_protozoa_at(pos: Vector2) -> bool:
-	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
-	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-	# Protozoa need humid aerobic environment — water or grass only
-	if biome != WorldGrid.BIOME_WATER and biome != WorldGrid.BIOME_GRASS:
-		return false
-	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
-	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
-	if WorldGrid.get_cell_value(gx, gy, "oxygen") < 0.15:
-		return false
-	if WorldGrid.get_cell_value(gx, gy, "water") < 0.3:
-		return false
-	# Need a minimum local bacteria density to sustain a predator
-	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(pos.x, pos.y, 256.0)
+	# Need at least 3 bacteria nearby to justify a predator
+	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(pos.x, pos.y, 300.0)
 	var bacteria_count: int = 0
 	for i in nearby:
 		if AgentPool.agent_type[i] == AgentPool.TYPE_BACTERIUM:
 			bacteria_count += 1
-	return bacteria_count >= 2
+	return bacteria_count >= 3
 
 
 func _can_spawn_plant_at(pos: Vector2) -> bool:
