@@ -1,7 +1,7 @@
 extends Node
 
-const GRID_WIDTH: int = 256
-const GRID_HEIGHT: int = 256
+const GRID_WIDTH: int = 128
+const GRID_HEIGHT: int = 128
 const CELL_SIZE: float = 8.0
 
 const FIELD_KEYS: Array[String] = [
@@ -120,10 +120,16 @@ func _is_in_bounds(x: int, y: int) -> bool:
 	return x >= 0 and x < GRID_WIDTH and y >= 0 and y < GRID_HEIGHT
 
 
-func _on_tick(_tick: int) -> void:
-	# Diffusion rates chosen so D*dt/dx² <= 0.25 (stability condition)
-	diffuse("nutrients", 0.05)
-	diffuse("oxygen", 0.08)
-	diffuse("toxins", 0.03)
-	diffuse("temperature", 0.06)
-	# water, ph, light don't diffuse by default at this stage
+# Diffuse one field per tick in rotation to spread CPU cost.
+# Full cycle = 4 ticks. Rates satisfy D*dt/dx² <= 0.25 (FTCS stability).
+const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
+const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
+
+# Diffusion runs at most every N real ticks regardless of speed_multiplier.
+const _DIFFUSE_EVERY_N_TICKS: int = 2
+
+func _on_tick(tick: int) -> void:
+	if tick % _DIFFUSE_EVERY_N_TICKS != 0:
+		return
+	var field_idx: int = (tick / _DIFFUSE_EVERY_N_TICKS) % _DIFFUSE_FIELDS.size()
+	diffuse(_DIFFUSE_FIELDS[field_idx], _DIFFUSE_RATES[field_idx])

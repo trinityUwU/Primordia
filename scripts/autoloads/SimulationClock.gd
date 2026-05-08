@@ -18,14 +18,22 @@ var _accumulator: float = 0.0
 var _speed_preset_index: int = 3
 
 
+# Max ticks processed per render frame — prevents spiral of death at high speed.
+const MAX_TICKS_PER_FRAME: int = 8
+
 func _process(delta: float) -> void:
 	if paused:
 		return
 	_accumulator += delta * speed_multiplier
 	var tick_interval: float = 1.0 / tick_rate
-	while _accumulator >= tick_interval:
+	var ticks_this_frame: int = 0
+	while _accumulator >= tick_interval and ticks_this_frame < MAX_TICKS_PER_FRAME:
 		_accumulator -= tick_interval
 		_advance_tick()
+		ticks_this_frame += 1
+	# Discard excess accumulation to avoid catch-up burst after a lag spike.
+	if _accumulator > tick_interval * MAX_TICKS_PER_FRAME:
+		_accumulator = 0.0
 
 
 func _advance_tick() -> void:
