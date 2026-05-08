@@ -1,26 +1,46 @@
 shader_type canvas_item;
 
+varying flat float v_biome;
+varying vec2 v_world_pos;
+
+void vertex() {
+    v_biome = INSTANCE_CUSTOM.r;
+    v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+
+float hash(vec2 p) {
+    p = fract(p * vec2(127.1, 311.7));
+    p += dot(p, p + 34.23);
+    return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+        f.y
+    );
+}
+
 void fragment() {
-    vec2 uv = FRAGCOORD.xy;
+    // Base color per biome
+    vec3 col;
+    int biome = int(v_biome + 0.5);
+    if (biome == 0)      col = vec3(0.08, 0.18, 0.38); // WATER
+    else if (biome == 1) col = vec3(0.32, 0.22, 0.14); // EARTH
+    else if (biome == 2) col = vec3(0.22, 0.42, 0.18); // GRASS
+    else if (biome == 3) col = vec3(0.10, 0.25, 0.10); // WOOD
+    else                 col = vec3(0.38, 0.36, 0.34); // ROCK
 
-    // Value noise
-    vec2 p1 = floor(uv / 40.0);
-    vec2 f1 = fract(uv / 40.0);
-    f1 = f1 * f1 * (3.0 - 2.0 * f1);
-    vec2 h1 = fract(p1 * vec2(127.1, 311.7) + vec2(p1.y * 74.3, p1.x * 91.7));
-    vec2 h2 = fract((p1 + vec2(1,0)) * vec2(127.1, 311.7) + vec2((p1.y) * 74.3, (p1.x+1.0) * 91.7));
-    vec2 h3 = fract((p1 + vec2(0,1)) * vec2(127.1, 311.7) + vec2((p1.y+1.0) * 74.3, p1.x * 91.7));
-    vec2 h4 = fract((p1 + vec2(1,1)) * vec2(127.1, 311.7) + vec2((p1.y+1.0) * 74.3, (p1.x+1.0) * 91.7));
-    float n1 = mix(mix(fract(h1.x * h1.y * 43758.5), fract(h2.x * h2.y * 43758.5), f1.x),
-                   mix(fract(h3.x * h3.y * 43758.5), fract(h4.x * h4.y * 43758.5), f1.x), f1.y);
+    // World-space layered noise (anchored to world, not screen)
+    vec2 wp = v_world_pos;
+    float n1 = noise(wp / 48.0) * 0.06;
+    float n2 = noise(wp / 12.0) * 0.03;
+    float n3 = noise(wp / 4.0)  * 0.015;
 
-    // Fine grain
-    vec2 p2 = floor(uv / 8.0);
-    float n2 = fract(sin(dot(p2, vec2(127.1, 311.7))) * 43758.5);
-
-    float noise = n1 * 0.07 + n2 * 0.025;
-
-    vec4 base = COLOR;
-    vec3 col = base.rgb + noise - 0.04;
-    COLOR = vec4(clamp(col, 0.0, 1.0), base.a);
+    col = clamp(col + n1 + n2 + n3 - 0.05, 0.0, 1.0);
+    COLOR = vec4(col, 1.0);
 }
