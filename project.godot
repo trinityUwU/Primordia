@@ -21,6 +21,7 @@ SimulationClock="*res://scripts/autoloads/SimulationClock.gd"
 WorldGrid="*res://scripts/autoloads/WorldGrid.gd"
 AgentPool="*res://scripts/managers/AgentPool.gd"
 ChunkSpawner="*res://scripts/managers/ChunkSpawner.gd"
+PopulationLOD="*res://scripts/managers/PopulationLOD.gd"
 
 [display]
 

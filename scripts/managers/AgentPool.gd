@@ -1,6 +1,6 @@
 extends Node
 
-const MAX_AGENTS: int = 10000
+var MAX_AGENTS: int = 10000  # set dynamically in _ready
 const TYPE_BACTERIUM: int = 0
 const TYPE_VIRUS: int = 1
 const TYPE_PROTOZOA: int = 2
@@ -54,8 +54,26 @@ var sense_radius: PackedFloat32Array
 
 
 func _ready() -> void:
+	_compute_max_agents()
 	_resize_arrays(MAX_AGENTS)
 	SimulationClock.tick_processed.connect(_on_tick)
+
+
+func _compute_max_agents() -> void:
+	var mem_info: Dictionary = OS.get_memory_info()
+	# available is in KB
+	var available_kb: int = mem_info.get("available", 4 * 1024 * 1024)
+	# Target 4GB max, or 60% of available RAM, whichever is smaller
+	var budget_bytes: int = mini(
+		4 * 1024 * 1024 * 1024,
+		available_kb * 1024 * 6 / 10
+	)
+	# 20 arrays × 4 bytes per agent
+	var bytes_per_agent: int = 20 * 4
+	MAX_AGENTS = int(budget_bytes / bytes_per_agent)
+	# Clamp to sane range: 10K minimum, 20M maximum for GDScript
+	MAX_AGENTS = clampi(MAX_AGENTS, 10000, 20000000)
+	print("AgentPool MAX_AGENTS: %d (RAM budget: %d MB)" % [MAX_AGENTS, budget_bytes / 1024 / 1024])
 
 
 func _resize_arrays(n: int) -> void:
