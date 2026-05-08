@@ -1,8 +1,5 @@
 extends Node
 
-const MAX_AGENTS: int = 2000
-const INITIAL_BACTERIA: int = 50
-
 var _agents: Array = []
 var _agent_layer: Node2D = null
 var _bacterium_script: GDScript = null
@@ -14,20 +11,15 @@ func _ready() -> void:
 	_bacterium_script = load("res://scripts/agents/Bacterium.gd")
 	_virus_script = load("res://scripts/agents/Virus.gd")
 	SimulationClock.tick_processed.connect(_on_tick)
-	call_deferred("_spawn_initial")
+	call_deferred("_init_agent_layer")
 
 
-func _spawn_initial() -> void:
+func _init_agent_layer() -> void:
 	_agent_layer = get_tree().get_root().find_child("AgentLayer", true, false)
-	var w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
-	var h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	for i in INITIAL_BACTERIA:
-		var pos: Vector2 = Vector2(randf() * w, randf() * h)
-		spawn_bacterium(pos)
 
 
 func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Node2D:
-	if _agents.size() >= MAX_AGENTS or _bacterium_script == null:
+	if _bacterium_script == null:
 		return null
 	var b: Node2D = _bacterium_script.new()
 	b.global_position = pos
@@ -38,7 +30,7 @@ func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Node2D:
 
 
 func spawn_virus(pos: Vector2) -> Node2D:
-	if _agents.size() >= MAX_AGENTS or _virus_script == null:
+	if _virus_script == null:
 		return null
 	var v: Node2D = _virus_script.new()
 	v.global_position = pos

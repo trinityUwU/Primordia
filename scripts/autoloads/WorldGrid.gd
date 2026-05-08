@@ -1,8 +1,8 @@
 extends Node
 
-const GRID_WIDTH: int = 192
-const GRID_HEIGHT: int = 108
+const CHUNK_SIZE: int = 32
 const CELL_SIZE: float = 8.0
+const CHUNK_WORLD_SIZE: float = CHUNK_SIZE * CELL_SIZE  # 256px
 
 const FIELD_KEYS: Array[String] = [
 	"nutrients", "water", "temperature", "oxygen", "ph", "toxins", "light"
@@ -18,38 +18,87 @@ const DEFAULT_VALUES: Dictionary = {
 	"light": 1.0,
 }
 
-# Each field stored as flat float Array, row-major: index = y * GRID_WIDTH + x
-var _fields: Dictionary = {}
-var _scratch: Dictionary = {}
+# Chunk eviction after this many seconds without being in the active set
+const CHUNK_TTL: float = 300.0
+
+var _chunks: Dictionary = {}            # Vector2i → { fields: {key: Array}, last_active: float }
+var _active_chunks: Array[Vector2i] = []
+
+const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
+const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
+const _DIFFUSE_INTERVAL: float = 0.1
+
+var _diffuse_accumulator: float = 0.0
+var _diffuse_field_idx: int = 0
+var _wall_clock: float = 0.0
 
 
 func _ready() -> void:
-	_allocate_arrays()
-	initialize_default()
 	SimulationClock.tick_processed.connect(_on_tick)
 
 
-func _allocate_arrays() -> void:
-	var size: int = GRID_WIDTH * GRID_HEIGHT
+# ── Chunk management ─────────────────────────────────────────────────────────
+
+func get_or_create_chunk(chunk_coord: Vector2i) -> Dictionary:
+	if _chunks.has(chunk_coord):
+		_chunks[chunk_coord]["last_active"] = _wall_clock
+		return _chunks[chunk_coord]
+	var fields: Dictionary = {}
+	var cells: int = CHUNK_SIZE * CHUNK_SIZE
 	for key in FIELD_KEYS:
-		_fields[key] = []
-		_fields[key].resize(size)
-		_scratch[key] = []
-		_scratch[key].resize(size)
+		var arr: Array[float] = []
+		arr.resize(cells)
+		arr.fill(DEFAULT_VALUES[key])
+		fields[key] = arr
+	var chunk: Dictionary = { "fields": fields, "last_active": _wall_clock }
+	_chunks[chunk_coord] = chunk
+	return chunk
 
 
-func initialize_default() -> void:
-	var size: int = GRID_WIDTH * GRID_HEIGHT
-	for key in FIELD_KEYS:
-		var default_val: float = DEFAULT_VALUES[key]
-		for i in size:
-			_fields[key][i] = default_val
+func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) -> void:
+	var half: float = active_radius_px
+	var min_chunk: Vector2i = world_to_chunk(camera_world_pos - Vector2(half, half))
+	var max_chunk: Vector2i = world_to_chunk(camera_world_pos + Vector2(half, half))
+	_active_chunks.clear()
+	for cy in range(min_chunk.y, max_chunk.y + 1):
+		for cx in range(min_chunk.x, max_chunk.x + 1):
+			var coord: Vector2i = Vector2i(cx, cy)
+			get_or_create_chunk(coord)
+			_active_chunks.append(coord)
+
+
+func _evict_stale_chunks() -> void:
+	var to_remove: Array[Vector2i] = []
+	for coord: Vector2i in _chunks.keys():
+		var age: float = _wall_clock - _chunks[coord]["last_active"]
+		if age > CHUNK_TTL:
+			to_remove.append(coord)
+	for coord in to_remove:
+		_chunks.erase(coord)
+
+
+# ── Coordinate helpers ────────────────────────────────────────────────────────
+
+func world_to_chunk(world_pos: Vector2) -> Vector2i:
+	return Vector2i(
+		floori(world_pos.x / CHUNK_WORLD_SIZE),
+		floori(world_pos.y / CHUNK_WORLD_SIZE)
+	)
+
+
+func world_to_local(world_pos: Vector2) -> Vector2i:
+	var gx: int = floori(world_pos.x / CELL_SIZE)
+	var gy: int = floori(world_pos.y / CELL_SIZE)
+	return Vector2i(
+		((gx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE,
+		((gy % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE
+	)
 
 
 func world_to_grid(world_pos: Vector2) -> Vector2i:
 	return Vector2i(
-		int(world_pos.x / CELL_SIZE),
-		int(world_pos.y / CELL_SIZE)
+		floori(world_pos.x / CELL_SIZE),
+		floori(world_pos.y / CELL_SIZE)
 	)
 
 
@@ -60,82 +109,75 @@ func grid_to_world(grid_pos: Vector2i) -> Vector2:
 	)
 
 
-func get_cell(x: int, y: int) -> Dictionary:
-	var result: Dictionary = {}
-	if not _is_in_bounds(x, y):
-		return result
-	var idx: int = y * GRID_WIDTH + x
-	for key in FIELD_KEYS:
-		result[key] = _fields[key][idx]
-	return result
+# ── Cell access (global grid coords) ─────────────────────────────────────────
+
+func get_cell_value(wx: int, wy: int, key: String) -> float:
+	var chunk_coord: Vector2i = Vector2i(
+		floori(float(wx) / CHUNK_SIZE),
+		floori(float(wy) / CHUNK_SIZE)
+	)
+	var chunk: Dictionary = get_or_create_chunk(chunk_coord)
+	var lx: int = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE
+	var ly: int = ((wy % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE
+	return chunk["fields"][key][ly * CHUNK_SIZE + lx]
 
 
-func set_cell_value(x: int, y: int, key: String, value: float) -> void:
-	if not _is_in_bounds(x, y):
-		return
-	_fields[key][y * GRID_WIDTH + x] = value
+func set_cell_value(wx: int, wy: int, key: String, value: float) -> void:
+	var chunk_coord: Vector2i = Vector2i(
+		floori(float(wx) / CHUNK_SIZE),
+		floori(float(wy) / CHUNK_SIZE)
+	)
+	var chunk: Dictionary = get_or_create_chunk(chunk_coord)
+	var lx: int = ((wx % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE
+	var ly: int = ((wy % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE
+	chunk["fields"][key][ly * CHUNK_SIZE + lx] = value
 
 
-func get_cell_value(x: int, y: int, key: String) -> float:
-	if not _is_in_bounds(x, y):
-		return 0.0
-	return _fields[key][y * GRID_WIDTH + x]
+# ── Diffusion ─────────────────────────────────────────────────────────────────
 
-
-# Fick discrete diffusion — 5-point stencil.
-# rate must satisfy: rate <= 0.25 for numerical stability (FTCS scheme).
 func diffuse(key: String, rate: float) -> void:
-	var src: Array = _fields[key]
-	var dst: Array = _scratch[key]
-	var w: int = GRID_WIDTH
-	var h: int = GRID_HEIGHT
-	# Interior cells
-	for y in range(1, h - 1):
-		var row_base: int = y * w
-		for x in range(1, w - 1):
-			var idx: int = row_base + x
+	for coord in _active_chunks:
+		_diffuse_chunk(coord, key, rate)
+
+
+func _diffuse_chunk(coord: Vector2i, key: String, rate: float) -> void:
+	var chunk: Dictionary = get_or_create_chunk(coord)
+	var src: Array = chunk["fields"][key]
+	var dst: Array[float] = []
+	dst.resize(CHUNK_SIZE * CHUNK_SIZE)
+	var s: int = CHUNK_SIZE
+	for y in range(1, s - 1):
+		for x in range(1, s - 1):
+			var idx: int = y * s + x
 			var laplacian: float = (
 				src[idx + 1] + src[idx - 1] +
-				src[idx + w] + src[idx - w] -
+				src[idx + s] + src[idx - s] -
 				4.0 * src[idx]
 			)
 			dst[idx] = src[idx] + rate * laplacian
-	# Copy border cells unchanged (Neumann boundary: zero flux)
-	_copy_border(src, dst, w, h)
-	# Swap arrays
-	_fields[key] = dst
-	_scratch[key] = src
+	_copy_chunk_border(src, dst, s)
+	chunk["fields"][key] = dst
 
 
-func _copy_border(src: Array, dst: Array, w: int, h: int) -> void:
-	for x in w:
+func _copy_chunk_border(src: Array, dst: Array, s: int) -> void:
+	for x in s:
 		dst[x] = src[x]
-		dst[(h - 1) * w + x] = src[(h - 1) * w + x]
-	for y in range(1, h - 1):
-		dst[y * w] = src[y * w]
-		dst[y * w + w - 1] = src[y * w + w - 1]
+		dst[(s - 1) * s + x] = src[(s - 1) * s + x]
+	for y in range(1, s - 1):
+		dst[y * s] = src[y * s]
+		dst[y * s + s - 1] = src[y * s + s - 1]
 
 
-func _is_in_bounds(x: int, y: int) -> bool:
-	return x >= 0 and x < GRID_WIDTH and y >= 0 and y < GRID_HEIGHT
-
-
-# Diffusion runs on a fixed wall-clock interval, fully decoupled from sim speed.
-# One field per interval in rotation — never more than ~10 passes/sec total.
-const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
-const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
-const _DIFFUSE_INTERVAL: float = 0.1  # seconds real time between diffusion passes
-
-var _diffuse_accumulator: float = 0.0
-var _diffuse_field_idx: int = 0
-
+# ── Process ───────────────────────────────────────────────────────────────────
 
 func _process(delta: float) -> void:
+	_wall_clock += delta
 	_diffuse_accumulator += delta
 	if _diffuse_accumulator >= _DIFFUSE_INTERVAL:
 		_diffuse_accumulator -= _DIFFUSE_INTERVAL
 		diffuse(_DIFFUSE_FIELDS[_diffuse_field_idx], _DIFFUSE_RATES[_diffuse_field_idx])
 		_diffuse_field_idx = (_diffuse_field_idx + 1) % _DIFFUSE_FIELDS.size()
+		_evict_stale_chunks()
 
 
 func _on_tick(_tick: int) -> void:

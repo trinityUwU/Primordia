@@ -65,9 +65,7 @@ func _move() -> void:
 	_run_timer -= 1
 	if _run_timer <= 0:
 		_tumble()
-	var delta_pos: Vector2 = _direction * (speed / 60.0)
-	global_position += delta_pos
-	_clamp_to_world()
+	global_position += _direction * (speed / 60.0)
 
 
 func _tumble() -> void:
@@ -85,10 +83,10 @@ func _sample_nutrient_gradient(gp: Vector2i) -> Vector2:
 	var x: int = gp.x
 	var y: int = gp.y
 	var r: int = 3
-	var cx: float = WorldGrid.get_cell_value(clamp(x + r, 0, WorldGrid.GRID_WIDTH - 1), y, "nutrients")
-	var lx: float = WorldGrid.get_cell_value(clamp(x - r, 0, WorldGrid.GRID_WIDTH - 1), y, "nutrients")
-	var cy: float = WorldGrid.get_cell_value(x, clamp(y + r, 0, WorldGrid.GRID_HEIGHT - 1), "nutrients")
-	var uy: float = WorldGrid.get_cell_value(x, clamp(y - r, 0, WorldGrid.GRID_HEIGHT - 1), "nutrients")
+	var cx: float = WorldGrid.get_cell_value(x + r, y, "nutrients")
+	var lx: float = WorldGrid.get_cell_value(x - r, y, "nutrients")
+	var cy: float = WorldGrid.get_cell_value(x, y + r, "nutrients")
+	var uy: float = WorldGrid.get_cell_value(x, y - r, "nutrients")
 	return Vector2(cx - lx, cy - uy)
 
 
@@ -103,8 +101,6 @@ func _consume_nutrients() -> void:
 func _check_division() -> void:
 	var threshold: float = genome.get("division_threshold", 1.0)
 	if energy < threshold:
-		return
-	if PopulationManager.get_population_count() >= PopulationManager.MAX_AGENTS:
 		return
 	var child_genome: Dictionary = _mutate_genome()
 	var offset: Vector2 = Vector2.from_angle(randf() * TAU) * size * 2.0
@@ -136,13 +132,6 @@ func _check_sporulation() -> void:
 	if nutrients < 0.05 and temp < 5.0:
 		_is_spore = true
 		_spore_timer = 0
-
-
-func _clamp_to_world() -> void:
-	var w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
-	var h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	global_position.x = fposmod(global_position.x, w)
-	global_position.y = fposmod(global_position.y, h)
 
 
 func is_spore() -> bool:

@@ -31,11 +31,8 @@ func _tick(_tick_num: int) -> void:
 
 
 func _move() -> void:
-	# Brownian motion — random walk each tick
 	_direction = Vector2.from_angle(randf() * TAU)
-	var step: float = speed * 0.3 / 60.0
-	global_position += _direction * step
-	_clamp_to_world()
+	global_position += _direction * (speed * 0.3 / 60.0)
 
 
 func _attempt_transmissions() -> void:
@@ -59,8 +56,3 @@ func infect(target: Node2D) -> void:
 		target.die()
 
 
-func _clamp_to_world() -> void:
-	var w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
-	var h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	global_position.x = fposmod(global_position.x, w)
-	global_position.y = fposmod(global_position.y, h)

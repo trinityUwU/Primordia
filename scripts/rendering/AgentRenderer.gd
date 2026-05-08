@@ -15,8 +15,16 @@ const VIRUS_RADIUS: float = 4.0
 func _draw() -> void:
 	if not is_instance_valid(PopulationManager):
 		return
+	var camera: Camera2D = get_viewport().get_camera_2d()
+	if camera == null:
+		return
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	var half: Vector2 = vp_size * 0.5 / camera.zoom
+	var cull_rect: Rect2 = Rect2(camera.global_position - half, half * 2.0).grow(50.0)
 	var agents: Array = PopulationManager.get_all_agents()
 	for agent in agents:
+		if not cull_rect.has_point(agent.global_position):
+			continue
 		if not agent.alive:
 			_draw_corpse(agent)
 			continue

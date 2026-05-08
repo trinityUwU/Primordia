@@ -12,7 +12,6 @@ var _grid_visible: bool = false
 
 
 func _ready() -> void:
-	WorldGrid.initialize_default()
 	_grid_renderer.visible = false
 	_debug_overlay.visible = false
 	_camera.zoom_level_changed.connect(_on_zoom_level_changed)

@@ -17,20 +17,17 @@ var _pan_start_camera: Vector2 = Vector2.ZERO
 func _ready() -> void:
 	add_to_group("main_camera")
 	await get_tree().process_frame
-	_fit_to_world()
+	_setup_zoom()
 
 
-func _fit_to_world() -> void:
-	var world_w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
-	var world_h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
+func _setup_zoom() -> void:
 	var vp: Vector2 = get_viewport().get_visible_rect().size
-	var fit_zoom: float = minf(vp.x / world_w, vp.y / world_h)
-	ZOOM_LEVELS[0] = fit_zoom * 0.4
-	ZOOM_LEVELS[1] = fit_zoom
-	ZOOM_LEVELS[2] = fit_zoom * 4.0
-	_target_zoom = fit_zoom
-	zoom = Vector2(fit_zoom, fit_zoom)
-	global_position = Vector2(world_w * 0.5, world_h * 0.5)
+	var base_zoom: float = vp.x / 1920.0
+	ZOOM_LEVELS[0] = base_zoom * 0.25
+	ZOOM_LEVELS[1] = base_zoom
+	ZOOM_LEVELS[2] = base_zoom * 4.0
+	_target_zoom = base_zoom
+	zoom = Vector2(base_zoom, base_zoom)
 
 
 func _process(delta: float) -> void:
@@ -38,7 +35,6 @@ func _process(delta: float) -> void:
 	var new_zoom: float = lerpf(current_zoom, _target_zoom, ZOOM_SPEED * delta)
 	zoom = Vector2(new_zoom, new_zoom)
 	_handle_wasd(delta)
-	_clamp_position()
 
 
 func _handle_wasd(delta: float) -> void:
@@ -82,7 +78,6 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 func _handle_pan(event: InputEventMouseMotion) -> void:
 	var delta_mouse: Vector2 = event.global_position - _pan_start_mouse
 	global_position = _pan_start_camera - delta_mouse / zoom.x
-	_clamp_position()
 
 
 func _handle_key(event: InputEventKey) -> void:
@@ -121,10 +116,3 @@ func _update_zoom_level() -> void:
 		_current_level = 1
 	if _current_level != prev_level:
 		zoom_level_changed.emit(_current_level)
-
-
-func _clamp_position() -> void:
-	var world_width: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
-	var world_height: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	global_position.x = clampf(global_position.x, 0.0, world_width)
-	global_position.y = clampf(global_position.y, 0.0, world_height)
