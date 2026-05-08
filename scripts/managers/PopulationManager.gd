@@ -1,9 +1,13 @@
 extends Node
 
+const AgentBaseScript: GDScript = preload("res://scripts/agents/AgentBase.gd")
+const BacteriumScript: GDScript = preload("res://scripts/agents/Bacterium.gd")
+const VirusScript: GDScript = preload("res://scripts/agents/Virus.gd")
+
 const MAX_AGENTS: int = 2000
 const INITIAL_BACTERIA: int = 50
 
-var _agents: Array[AgentBase] = []
+var _agents: Array = []
 var _agent_layer: Node2D = null
 
 
@@ -21,10 +25,10 @@ func _spawn_initial() -> void:
 		spawn_bacterium(pos)
 
 
-func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Bacterium:
+func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Node2D:
 	if _agents.size() >= MAX_AGENTS:
 		return null
-	var b: Bacterium = Bacterium.new()
+	var b: Node2D = BacteriumScript.new()
 	b.global_position = pos
 	if not genome.is_empty():
 		b.genome = genome
@@ -32,16 +36,20 @@ func spawn_bacterium(pos: Vector2, genome: Dictionary = {}) -> Bacterium:
 	return b
 
 
-func spawn_virus(pos: Vector2) -> Virus:
+func spawn_virus(pos: Vector2) -> Node2D:
 	if _agents.size() >= MAX_AGENTS:
 		return null
-	var v: Virus = Virus.new()
+	var v: Node2D = VirusScript.new()
 	v.global_position = pos
 	_register_agent(v)
 	return v
 
 
-func _register_agent(agent: AgentBase) -> void:
+func _on_agent_died(agent: Node2D) -> void:
+	pass
+
+
+func _register_agent(agent: Node2D) -> void:
 	_agents.append(agent)
 	agent.died.connect(_on_agent_died.bind(agent))
 	if _agent_layer != null:
@@ -63,7 +71,7 @@ func _process_agents(tick_num: int) -> void:
 
 
 func _purge_dead() -> void:
-	var alive_agents: Array[AgentBase] = []
+	var alive_agents: Array = []
 	for agent in _agents:
 		if agent.alive:
 			alive_agents.append(agent)
@@ -92,8 +100,8 @@ func get_count_by_type(type: String) -> int:
 	return count
 
 
-func get_agents_in_radius(pos: Vector2, radius: float) -> Array[AgentBase]:
-	var result: Array[AgentBase] = []
+func get_agents_in_radius(pos: Vector2, radius: float) -> Array:
+	var result: Array = []
 	var radius_sq: float = radius * radius
 	for agent in _agents:
 		if agent.alive and agent.global_position.distance_squared_to(pos) <= radius_sq:
@@ -101,5 +109,5 @@ func get_agents_in_radius(pos: Vector2, radius: float) -> Array[AgentBase]:
 	return result
 
 
-func get_all_agents() -> Array[AgentBase]:
+func get_all_agents() -> Array:
 	return _agents

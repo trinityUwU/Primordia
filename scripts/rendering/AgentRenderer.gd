@@ -1,6 +1,9 @@
 class_name AgentRenderer
 extends Node2D
 
+const BacteriumScript: GDScript = preload("res://scripts/agents/Bacterium.gd")
+const VirusScript: GDScript = preload("res://scripts/agents/Virus.gd")
+
 const COLOR_GRAM_POS: Color = Color(0.4, 0.7, 1.0, 0.9)
 const COLOR_GRAM_NEG: Color = Color(1.0, 0.45, 0.2, 0.9)
 const COLOR_SPORE: Color = Color(0.55, 0.55, 0.55, 0.85)
@@ -15,17 +18,17 @@ const VIRUS_RADIUS: float = 4.0
 func _draw() -> void:
 	if not is_instance_valid(PopulationManager):
 		return
-	var agents: Array[AgentBase] = PopulationManager.get_all_agents()
+	var agents: Array = PopulationManager.get_all_agents()
 	for agent in agents:
 		if not agent.alive:
 			continue
-		if agent is Bacterium:
-			_draw_bacterium(agent as Bacterium)
-		elif agent is Virus:
-			_draw_virus(agent as Virus)
+		if agent.get_script() == BacteriumScript:
+			_draw_bacterium(agent)
+		elif agent.get_script() == VirusScript:
+			_draw_virus(agent)
 
 
-func _draw_bacterium(b: Bacterium) -> void:
+func _draw_bacterium(b: Node2D) -> void:
 	var pos: Vector2 = b.global_position
 	if b.is_spore():
 		draw_circle(pos, SPORE_RADIUS, COLOR_SPORE)
@@ -38,7 +41,7 @@ func _draw_bacterium(b: Bacterium) -> void:
 	draw_arc(pos, radius, 0.0, TAU, 12, COLOR_OUTLINE, 0.8)
 
 
-func _draw_virus(v: Virus) -> void:
+func _draw_virus(v: Node2D) -> void:
 	var pos: Vector2 = v.global_position
 	_draw_pentagon(pos, VIRUS_RADIUS, COLOR_VIRUS)
 
