@@ -433,6 +433,17 @@ func _tick_bacterium(i: int) -> void:
 	_consume_energy(i)
 	if not is_alive(i):
 		return
+	# Density stress: toxin accumulation and O2 depletion kill in overcrowded areas
+	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
+	var toxins: float = WorldGrid.get_cell_value(gx, gy, "toxins")
+	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
+	if toxins > 0.6 and randf() < toxins * 0.05:
+		kill(i)
+		return
+	if o2 < 0.05 and randf() < 0.1:
+		kill(i)
+		return
 	_move_bacterium(i)
 	_consume_nutrients(i)
 	_check_sporulation(i)
