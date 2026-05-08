@@ -54,7 +54,7 @@ func _maybe_spawn() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		var roll: float = randf()
-		if spawn_protozoa_enabled and _can_spawn_protozoa_at(pos) and roll < 0.04:
+		if spawn_protozoa_enabled and _can_spawn_protozoa_at(pos) and roll < 0.15:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
 		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and roll < 0.08:
 			AgentPool.spawn_plant(pos.x, pos.y)
@@ -80,7 +80,7 @@ func _can_spawn_at(pos: Vector2) -> bool:
 	# No spawn in rock (too hostile), very rare in water
 	if biome == WorldGrid.BIOME_ROCK:
 		return false
-	if biome == WorldGrid.BIOME_WATER and randf() > 0.15:
+	if biome == WorldGrid.BIOME_WATER and randf() > 0.4:
 		return false
 	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(
 		pos.x, pos.y, WorldGrid.CHUNK_WORLD_SIZE
@@ -106,7 +106,7 @@ func _can_spawn_protozoa_at(pos: Vector2) -> bool:
 	for i in nearby:
 		if AgentPool.agent_type[i] == AgentPool.TYPE_BACTERIUM:
 			bacteria_count += 1
-	return bacteria_count >= 5
+	return bacteria_count >= 2
 
 
 func _can_spawn_plant_at(pos: Vector2) -> bool:
