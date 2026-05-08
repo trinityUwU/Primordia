@@ -120,16 +120,23 @@ func _is_in_bounds(x: int, y: int) -> bool:
 	return x >= 0 and x < GRID_WIDTH and y >= 0 and y < GRID_HEIGHT
 
 
-# Diffuse one field per tick in rotation to spread CPU cost.
-# Full cycle = 4 ticks. Rates satisfy D*dt/dx² <= 0.25 (FTCS stability).
+# Diffusion runs on a fixed wall-clock interval, fully decoupled from sim speed.
+# One field per interval in rotation — never more than ~10 passes/sec total.
 const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
 const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
+const _DIFFUSE_INTERVAL: float = 0.1  # seconds real time between diffusion passes
 
-# Diffusion runs at most every N real ticks regardless of speed_multiplier.
-const _DIFFUSE_EVERY_N_TICKS: int = 2
+var _diffuse_accumulator: float = 0.0
+var _diffuse_field_idx: int = 0
 
-func _on_tick(tick: int) -> void:
-	if tick % _DIFFUSE_EVERY_N_TICKS != 0:
-		return
-	var field_idx: int = (tick / _DIFFUSE_EVERY_N_TICKS) % _DIFFUSE_FIELDS.size()
-	diffuse(_DIFFUSE_FIELDS[field_idx], _DIFFUSE_RATES[field_idx])
+
+func _process(delta: float) -> void:
+	_diffuse_accumulator += delta
+	if _diffuse_accumulator >= _DIFFUSE_INTERVAL:
+		_diffuse_accumulator -= _DIFFUSE_INTERVAL
+		diffuse(_DIFFUSE_FIELDS[_diffuse_field_idx], _DIFFUSE_RATES[_diffuse_field_idx])
+		_diffuse_field_idx = (_diffuse_field_idx + 1) % _DIFFUSE_FIELDS.size()
+
+
+func _on_tick(_tick: int) -> void:
+	pass
