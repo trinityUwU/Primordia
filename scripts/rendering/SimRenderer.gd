@@ -29,7 +29,7 @@ func _setup_multimesh() -> void:
 	_multimesh = MultiMesh.new()
 	_multimesh.transform_format = MultiMesh.TRANSFORM_2D
 	_multimesh.use_custom_data = true
-	_multimesh.instance_count = AgentPool.MAX_AGENTS
+	_multimesh.instance_count = AgentPool.SOFT_CAP
 	var quad: QuadMesh = QuadMesh.new()
 	quad.size = Vector2(10.0, 10.0)
 	_multimesh.mesh = quad

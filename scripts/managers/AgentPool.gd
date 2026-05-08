@@ -64,7 +64,7 @@ var _alloc_size: int = 0  # current allocated capacity
 func _ready() -> void:
 	_compute_max_agents()
 	# Pre-allocate only what we need now — grow on demand
-	_resize_arrays(SOFT_CAP * 2)
+	_resize_arrays(SOFT_CAP)
 	SimulationClock.tick_processed.connect(_on_tick)
 
 
@@ -110,14 +110,12 @@ func _resize_arrays(n: int) -> void:
 
 
 func _find_free_slot() -> int:
+	# Hard cap on alive agents
+	if _alive_count >= SOFT_CAP:
+		return -1
 	if count < _alloc_size:
 		return count
-	# Grow arrays if under SOFT_CAP
-	if _alloc_size < SOFT_CAP:
-		var new_size: int = mini(_alloc_size + 1000, SOFT_CAP)
-		_grow_arrays(new_size)
-		return count
-	# Scan for dead slot
+	# Scan for dead slot within alloc
 	for i in _alloc_size:
 		if flags[i] == 0:
 			return i
