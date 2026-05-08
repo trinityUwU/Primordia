@@ -10,6 +10,7 @@ var _virus_script: GDScript = null
 
 
 func _ready() -> void:
+	load("res://scripts/agents/AgentBase.gd")
 	_bacterium_script = load("res://scripts/agents/Bacterium.gd")
 	_virus_script = load("res://scripts/agents/Virus.gd")
 	SimulationClock.tick_processed.connect(_on_tick)

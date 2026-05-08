@@ -1,5 +1,5 @@
 class_name Bacterium
-extends AgentBase
+extends "res://scripts/agents/AgentBase.gd"
 
 const DEFAULT_GENOME: Dictionary = {
 	"move_speed": 30.0,

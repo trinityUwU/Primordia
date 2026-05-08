@@ -1,5 +1,5 @@
 class_name Virus
-extends AgentBase
+extends "res://scripts/agents/AgentBase.gd"
 
 var r0: float = 2.5
 var incubation_ticks: int = 50
