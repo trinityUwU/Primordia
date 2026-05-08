@@ -2,7 +2,7 @@ extends Camera2D
 
 signal zoom_level_changed(level: int)
 
-const ZOOM_LEVELS: Array[float] = [0.5, 1.5, 4.0]
+var ZOOM_LEVELS: Array[float] = [0.5, 1.5, 4.0]
 const ZOOM_SPEED: float = 8.0
 const PAN_BUTTON: int = MOUSE_BUTTON_MIDDLE
 
@@ -15,13 +15,18 @@ var _pan_start_camera: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	add_to_group("main_camera")
+	await get_tree().process_frame
+	_fit_to_world()
+
+
+func _fit_to_world() -> void:
 	var world_w: float = WorldGrid.GRID_WIDTH * WorldGrid.CELL_SIZE
 	var world_h: float = WorldGrid.GRID_HEIGHT * WorldGrid.CELL_SIZE
-	var vp: Vector2 = get_viewport_rect().size
+	var vp: Vector2 = get_viewport().get_visible_rect().size
 	var fit_zoom: float = minf(vp.x / world_w, vp.y / world_h)
-	ZOOM_LEVELS[0] = fit_zoom * 0.5
+	ZOOM_LEVELS[0] = fit_zoom * 0.4
 	ZOOM_LEVELS[1] = fit_zoom
-	ZOOM_LEVELS[2] = fit_zoom * 3.0
+	ZOOM_LEVELS[2] = fit_zoom * 4.0
 	_target_zoom = fit_zoom
 	zoom = Vector2(fit_zoom, fit_zoom)
 	global_position = Vector2(world_w * 0.5, world_h * 0.5)
