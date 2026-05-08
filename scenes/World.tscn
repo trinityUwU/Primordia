@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://worldmain"]
+[gd_scene load_steps=10 format=3 uid="uid://worldmain"]
 
 [ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://agentlayer" path="res://scenes/AgentLayer.tscn" id="6_agentlayer"]
 [ext_resource type="PackedScene" uid="uid://spawncontrolpanel" path="res://scenes/ui/SpawnControlPanel.tscn" id="7_scp"]
 [ext_resource type="PackedScene" uid="uid://biomerenderer" path="res://scenes/BiomeRenderer.tscn" id="8_br"]
+[ext_resource type="PackedScene" uid="uid://biomeeditor" path="res://scenes/ui/BiomeEditor.tscn" id="9_be"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("5_shader")
@@ -42,3 +43,5 @@ layer = 10
 [node name="DebugOverlay" parent="UILayer" instance=ExtResource("4_dbg")]
 
 [node name="SpawnControlPanel" parent="UILayer" instance=ExtResource("7_scp")]
+
+[node name="BiomeEditor" parent="UILayer" instance=ExtResource("9_be")]
