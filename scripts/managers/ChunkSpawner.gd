@@ -1,6 +1,7 @@
 extends Node
 
-const SPAWN_EXTRA: float = 500.0
+const ACTIVE_RADIUS: float = 800.0
+const SPAWN_RADIUS: float = 1000.0
 const MAX_AGENTS: int = 2000
 const MAX_DENSITY_PER_CHUNK: float = 2.0
 const SPAWN_PER_TICK: int = 3
@@ -15,23 +16,10 @@ func _ready() -> void:
 	SimulationClock.tick_processed.connect(_on_tick)
 
 
-func _get_spawn_radius() -> float:
-	var vp := get_viewport()
-	if vp == null:
-		return 5000.0
-	var size := vp.get_visible_rect().size
-	var cam := get_tree().get_first_node_in_group("main_camera")
-	var zoom := 1.0
-	if cam != null:
-		zoom = (cam as Camera2D).zoom.x
-	var half_diag := size.length() * 0.5 / zoom
-	return half_diag + SPAWN_EXTRA
-
-
 func _on_tick(tick: int) -> void:
 	_update_camera_pos()
 	if tick % 30 == 0:
-		WorldGrid.update_active_chunks(_camera_world_pos, _get_spawn_radius())
+		WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_RADIUS)
 	if tick % SPAWN_EVERY_N_TICKS == 0:
 		_maybe_spawn()
 
@@ -50,13 +38,12 @@ func _update_camera_pos() -> void:
 func _maybe_spawn() -> void:
 	if AgentPool._alive_count >= MAX_AGENTS:
 		return
-	var radius := _get_spawn_radius()
 	var to_spawn: int = mini(SPAWN_PER_TICK, MAX_AGENTS - AgentPool._alive_count)
 	var spawned: int = 0
 	var attempts: int = 0
 	while spawned < to_spawn and attempts < to_spawn * 4:
 		attempts += 1
-		var pos: Vector2 = _random_spawn_pos(radius)
+		var pos: Vector2 = _random_spawn_pos()
 		if not _can_spawn_at(pos):
 			continue
 		AgentPool.spawn_bacterium(pos.x, pos.y)
@@ -75,7 +62,7 @@ func _can_spawn_at(pos: Vector2) -> bool:
 	return nearby.size() < int(MAX_DENSITY_PER_CHUNK)
 
 
-func _random_spawn_pos(radius: float) -> Vector2:
+func _random_spawn_pos() -> Vector2:
 	var angle := randf() * TAU
-	var dist := sqrt(randf()) * radius
+	var dist := sqrt(randf()) * SPAWN_RADIUS
 	return _camera_world_pos + Vector2(cos(angle), sin(angle)) * dist
