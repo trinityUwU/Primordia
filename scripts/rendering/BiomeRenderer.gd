@@ -11,6 +11,14 @@ const BIOME_COLORS: Array[Color] = [
 const CHUNK_PX: float = WorldGrid.CHUNK_WORLD_SIZE
 
 
+func _ready() -> void:
+	var shader: Shader = load("res://shaders/biome.gdshader")
+	if shader:
+		var mat := ShaderMaterial.new()
+		mat.shader = shader
+		material = mat
+
+
 func _process(_delta: float) -> void:
 	queue_redraw()
 

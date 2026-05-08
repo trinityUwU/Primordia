@@ -48,8 +48,10 @@ func _maybe_spawn() -> void:
 		var pos: Vector2 = _random_spawn_pos()
 		if not _can_spawn_at(pos):
 			continue
+		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		if spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
-			AgentPool.spawn_bacterium(pos.x, pos.y)
+			AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
 		elif spawn_virus_enabled:
 			AgentPool.spawn_virus(pos.x, pos.y)
 		else:
@@ -63,10 +65,31 @@ func _can_spawn_at(pos: Vector2) -> bool:
 	var nutrients: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
 	if nutrients < MIN_NUTRIENTS_TO_SPAWN:
 		return false
+	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+	# No spawn in rock (too hostile), very rare in water
+	if biome == WorldGrid.BIOME_ROCK:
+		return false
+	if biome == WorldGrid.BIOME_WATER and randf() > 0.15:
+		return false
 	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(
 		pos.x, pos.y, WorldGrid.CHUNK_WORLD_SIZE
 	)
 	return nearby.size() < int(MAX_DENSITY_PER_CHUNK)
+
+
+func _genome_for_biome(biome: int) -> Dictionary:
+	match biome:
+		WorldGrid.BIOME_WATER:
+			return { "gram_positive": false, "metabolism": 0.015, "resistance": 0.6 }
+		WorldGrid.BIOME_GRASS:
+			return { "gram_positive": true, "metabolism": 0.025, "move_speed": 35.0 }
+		WorldGrid.BIOME_WOOD:
+			return { "gram_positive": true, "metabolism": 0.018, "division_threshold": 0.9 }
+		WorldGrid.BIOME_ROCK:
+			return {}  # never reached, filtered above
+		_:  # EARTH default
+			return {}
 
 
 func _random_spawn_pos() -> Vector2:

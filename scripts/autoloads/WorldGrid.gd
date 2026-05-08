@@ -14,6 +14,21 @@ const BIOME_GRASS: int = 2
 const BIOME_WOOD:  int = 3
 const BIOME_ROCK:  int = 4
 
+const BIOME_REGEN: Dictionary = {
+	0: { "nutrients": 0.0005, "water": 0.008, "oxygen": 0.001 },   # WATER
+	1: { "nutrients": 0.002,  "water": 0.001, "oxygen": 0.0005 },  # EARTH
+	2: { "nutrients": 0.005,  "water": 0.003, "oxygen": 0.002 },   # GRASS
+	3: { "nutrients": 0.007,  "water": 0.004, "oxygen": 0.003 },   # WOOD
+	4: { "nutrients": 0.0002, "water": 0.0,   "oxygen": 0.0002 },  # ROCK
+}
+const BIOME_REGEN_CAP: Dictionary = {
+	0: { "nutrients": 0.15, "water": 1.0,  "oxygen": 0.18 },
+	1: { "nutrients": 0.6,  "water": 0.5,  "oxygen": 0.22 },
+	2: { "nutrients": 0.8,  "water": 0.65, "oxygen": 0.28 },
+	3: { "nutrients": 0.9,  "water": 0.75, "oxygen": 0.32 },
+	4: { "nutrients": 0.08, "water": 0.12, "oxygen": 0.22 },
+}
+
 const BIOME_DEFAULTS: Dictionary = {
 	0: { "nutrients": 0.1, "water": 1.0, "temperature": 15.0, "oxygen": 0.15, "ph": 7.5, "toxins": 0.0, "light": 0.5 },
 	1: { "nutrients": 0.5, "water": 0.4, "temperature": 20.0, "oxygen": 0.21, "ph": 6.8, "toxins": 0.0, "light": 0.9 },
@@ -218,15 +233,24 @@ func _process(delta: float) -> void:
 
 func _on_tick(tick: int) -> void:
 	if tick % 30 == 0:
-		_regenerate_nutrients()
+		_regenerate_fields()
 
 
-func _regenerate_nutrients() -> void:
+func _regenerate_fields() -> void:
 	for coord in _active_chunks:
 		if not _chunks.has(coord):
 			continue
-		var fields: Dictionary = _chunks[coord]["fields"]
-		var arr: Array = fields["nutrients"]
-		for i in arr.size():
-			if arr[i] < 0.8:
-				arr[i] = minf(arr[i] + 0.003, 0.8)
+		var chunk: Dictionary = _chunks[coord]
+		var biome: int = chunk.get("biome", BIOME_EARTH)
+		var regen: Dictionary = BIOME_REGEN.get(biome, BIOME_REGEN[BIOME_EARTH])
+		var caps: Dictionary = BIOME_REGEN_CAP.get(biome, BIOME_REGEN_CAP[BIOME_EARTH])
+		var fields: Dictionary = chunk["fields"]
+		for key in regen:
+			var rate: float = regen[key]
+			if rate <= 0.0:
+				continue
+			var cap: float = caps[key]
+			var arr: Array = fields[key]
+			for i in arr.size():
+				if arr[i] < cap:
+					arr[i] = minf(arr[i] + rate, cap)
