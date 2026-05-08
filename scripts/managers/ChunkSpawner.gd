@@ -2,10 +2,10 @@ extends Node
 
 const ACTIVE_RADIUS: float = 800.0
 const SPAWN_RADIUS: float = 1000.0
-const MAX_AGENTS: int = 2000
-const MAX_DENSITY_PER_CHUNK: float = 8.0
-const SPAWN_PER_TICK: int = 3
-const SPAWN_EVERY_N_TICKS: int = 10
+const MAX_AGENTS: int = 10000
+const SEED_TARGET: int = 200       # agents to seed at startup
+const SPAWN_PER_TICK: int = 5
+const SPAWN_EVERY_N_TICKS: int = 30  # slow trickle for immigration only
 const MIN_NUTRIENTS_TO_SPAWN: float = 0.05
 
 var _camera_world_pos: Vector2 = Vector2.ZERO
@@ -19,13 +19,32 @@ var spawn_fungi_enabled: bool = false
 
 func _ready() -> void:
 	SimulationClock.tick_processed.connect(_on_tick)
+	# Seed world on first frame after scene is ready
+	call_deferred("_seed_world")
+
+
+func _seed_world() -> void:
+	_update_camera_pos()
+	WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_RADIUS)
+	var attempts: int = 0
+	while AgentPool._alive_count < SEED_TARGET and attempts < SEED_TARGET * 6:
+		attempts += 1
+		var pos: Vector2 = _random_spawn_pos()
+		var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
+		var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
+		if WorldGrid.get_cell_value(gx, gy, "nutrients") < MIN_NUTRIENTS_TO_SPAWN:
+			continue
+		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
 
 
 func _on_tick(tick: int) -> void:
 	_update_camera_pos()
 	if tick % 30 == 0:
 		WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_RADIUS)
-	if tick % SPAWN_EVERY_N_TICKS == 0:
+	# Immigration trickle — only when population drops below threshold
+	if tick % SPAWN_EVERY_N_TICKS == 0 and AgentPool._alive_count < MAX_AGENTS / 4:
 		_maybe_spawn()
 
 

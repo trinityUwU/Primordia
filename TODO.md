@@ -55,21 +55,44 @@
 ## Phase 3b — Environnement & Biomes
 
 ### Biome system
-- [~] BiomeMap : chaque chunk a un type (eau, terre, herbe, bois, roche)
+- [x] BiomeMap : chaque chunk a un type (eau, terre, herbe, bois, roche)
 - [ ] Valeurs initiales par biome (nutrients, water, temperature, oxygen, ph, toxins, light)
 - [ ] Limites de régénération par biome (eau régénère water vite, forêt régénère nutrients)
 - [ ] Impact spawn : ChunkSpawner filtre par biome (anaérobies en eau, etc.)
 
 ### Rendu biomes
-- [~] Flat color par biome (fond coloré selon type de chunk)
-- [ ] Shader texturing procédural par biome (grain, pattern, variation noise)
+- [x] Flat color par biome (fond coloré selon type de chunk)
+- [x] Shader texturing procédural par biome (grain, pattern, variation noise)
 - [ ] Transitions douces entre biomes (blend aux bordures de chunk)
-- [ ] Overlay heatmap : nutrients / toxins / temperature (toggle)
+- [x] Overlay heatmap : nutrients / toxins / temperature (toggle)
 
 ### Éditeur in-game
-- [ ] Outil peinture : sélectionner un biome et peindre des chunks au clic
-- [ ] UI palette biomes (panneau latéral gauche)
-- [ ] Raccourci clavier pour activer/désactiver le mode éditeur
+- [x] Outil peinture : sélectionner un biome et peindre des chunks au clic
+- [x] UI palette biomes (panneau latéral gauche)
+- [x] Raccourci clavier pour activer/désactiver le mode éditeur
+
+---
+
+## Phase 3c — Architecture Écologique & Performance
+
+### Simulation auto-entretenue
+- [~] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
+- [ ] Équilibre division/mort : taux division > taux mort naturelle dans env stable
+- [ ] Nutrient cycle fermé : production (plantes) == consommation (bactéries) à l'équilibre
+
+### Scale
+- [ ] MAX_AGENTS dynamique (RAM-based) — viser 10K→100K agents
+- [ ] LOD simulation : chunks proches = individuel, chunks distants = agrégé (populations moyennes)
+- [ ] Chunk data compression pour chunks inactifs
+
+### Monde persistant
+- [ ] Biomes ne disparaissent pas en dehors du viewport (bug actuel : chunks evictés perdent leur biome)
+- [ ] Regen sur tous les chunks, pas seulement actifs (fait)
+- [ ] Chunk eviction préserve le biome_type pour re-création correcte
+
+### Perf
+- [ ] TICK_STRIDE adaptatif selon charge CPU
+- [ ] Profiling : identifier le vrai bottleneck à 10K agents
 
 ---
 

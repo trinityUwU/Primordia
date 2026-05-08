@@ -52,6 +52,7 @@ const CHUNK_TTL: float = 300.0
 
 var _chunks: Dictionary = {}            # Vector2i → { fields: {key: Array}, last_active: float }
 var _active_chunks: Array[Vector2i] = []
+var _biome_map: Dictionary = {}         # Vector2i → int — persistent, never evicted
 
 const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
 const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
@@ -72,6 +73,9 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dic
 	if _chunks.has(chunk_coord):
 		_chunks[chunk_coord]["last_active"] = _wall_clock
 		return _chunks[chunk_coord]
+	# Use persisted biome if known, otherwise use provided default
+	var persisted: int = _biome_map.get(chunk_coord, biome)
+	biome = persisted
 	var defaults: Dictionary = BIOME_DEFAULTS[biome]
 	var fields: Dictionary = {}
 	var cells: int = CHUNK_SIZE * CHUNK_SIZE
@@ -92,6 +96,7 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dic
 
 
 func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
+	_biome_map[chunk_coord] = biome  # persist forever
 	var chunk: Dictionary = get_or_create_chunk(chunk_coord, biome)
 	chunk["biome"] = biome
 	var defaults: Dictionary = BIOME_DEFAULTS[biome]
@@ -101,9 +106,7 @@ func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
 
 
 func get_chunk_biome(chunk_coord: Vector2i) -> int:
-	if not _chunks.has(chunk_coord):
-		return BIOME_EARTH
-	return _chunks[chunk_coord].get("biome", BIOME_EARTH)
+	return _biome_map.get(chunk_coord, BIOME_EARTH)
 
 
 func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) -> void:

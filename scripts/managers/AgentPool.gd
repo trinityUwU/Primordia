@@ -1,6 +1,6 @@
 extends Node
 
-const MAX_AGENTS: int = 3000
+const MAX_AGENTS: int = 10000
 const TYPE_BACTERIUM: int = 0
 const TYPE_VIRUS: int = 1
 const TYPE_PROTOZOA: int = 2
