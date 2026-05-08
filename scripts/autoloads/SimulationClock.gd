@@ -19,7 +19,7 @@ var _speed_preset_index: int = 3
 
 
 # Max ticks processed per render frame — prevents spiral of death at high speed.
-const MAX_TICKS_PER_FRAME: int = 8
+const MAX_TICKS_PER_FRAME: int = 4
 
 func _process(delta: float) -> void:
 	if paused:

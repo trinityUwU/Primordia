@@ -8,6 +8,7 @@ const SPAWN_EVERY_N_TICKS: int = 10
 const MIN_NUTRIENTS_TO_SPAWN: float = 0.1
 
 var _camera_world_pos: Vector2 = Vector2.ZERO
+var _last_valid_camera_pos: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -16,15 +17,21 @@ func _ready() -> void:
 
 func _on_tick(tick: int) -> void:
 	_update_camera_pos()
-	WorldGrid.update_active_chunks(_camera_world_pos, SPAWN_RADIUS)
+	if tick % 30 == 0:
+		WorldGrid.update_active_chunks(_camera_world_pos, SPAWN_RADIUS)
 	if tick % SPAWN_EVERY_N_TICKS == 0:
 		_maybe_spawn()
 
 
 func _update_camera_pos() -> void:
 	var cam: Node = get_tree().get_first_node_in_group("main_camera")
-	if cam != null:
-		_camera_world_pos = (cam as Node2D).global_position
+	if cam == null:
+		return
+	var pos: Vector2 = (cam as Node2D).global_position
+	if pos == Vector2.ZERO:
+		return
+	_camera_world_pos = pos
+	_last_valid_camera_pos = pos
 
 
 func _maybe_spawn() -> void:

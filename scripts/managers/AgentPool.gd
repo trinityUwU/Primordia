@@ -12,6 +12,7 @@ const DEAD_DECAY_TICKS: int = 300
 const SPORE_MIN_TIMER: int = 100
 
 var count: int = 0
+var _dirty: bool = false
 
 var pos_x: PackedFloat32Array
 var pos_y: PackedFloat32Array
@@ -172,6 +173,7 @@ func get_agents_in_radius(px: float, py: float, radius: float) -> PackedInt32Arr
 func _on_tick(tick: int) -> void:
 	_process_agents(tick)
 	compact_dead()
+	_dirty = true
 
 
 func _process_agents(tick: int) -> void:
