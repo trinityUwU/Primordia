@@ -59,30 +59,30 @@ var target_i: PackedInt32Array    # index of target agent (-1 = none)
 var sense_radius: PackedFloat32Array
 
 
+var _alloc_size: int = 0  # current allocated capacity
+
 func _ready() -> void:
 	_compute_max_agents()
-	_resize_arrays(MAX_AGENTS)
+	# Pre-allocate only what we need now — grow on demand
+	_resize_arrays(SOFT_CAP * 2)
 	SimulationClock.tick_processed.connect(_on_tick)
 
 
 func _compute_max_agents() -> void:
 	var mem_info: Dictionary = OS.get_memory_info()
-	# available is in KB
 	var available_kb: int = mem_info.get("available", 4 * 1024 * 1024)
-	# Target 4GB max, or 60% of available RAM, whichever is smaller
+	# Theoretical limit: 60% of available RAM, max 20M
 	var budget_bytes: int = mini(
-		4 * 1024 * 1024 * 1024,
-		available_kb * 1024 * 6 / 10
+		int(available_kb) * 1024 * 6 / 10,
+		20000000 * 20 * 4
 	)
-	# 20 arrays × 4 bytes per agent
 	var bytes_per_agent: int = 20 * 4
-	MAX_AGENTS = int(budget_bytes / bytes_per_agent)
-	# Clamp to sane range: 10K minimum, 20M maximum for GDScript
-	MAX_AGENTS = clampi(MAX_AGENTS, 10000, 20000000)
-	print("AgentPool MAX_AGENTS: %d (RAM budget: %d MB)" % [MAX_AGENTS, budget_bytes / 1024 / 1024])
+	MAX_AGENTS = clampi(int(budget_bytes / bytes_per_agent), SOFT_CAP, 20000000)
+	print("AgentPool MAX_AGENTS: %d  SOFT_CAP: %d" % [MAX_AGENTS, SOFT_CAP])
 
 
 func _resize_arrays(n: int) -> void:
+	_alloc_size = n
 	pos_x.resize(n);          pos_x.fill(0.0)
 	pos_y.resize(n);          pos_y.fill(0.0)
 	dir_x.resize(n);          dir_x.fill(1.0)
@@ -110,12 +110,45 @@ func _resize_arrays(n: int) -> void:
 
 
 func _find_free_slot() -> int:
-	if count < MAX_AGENTS:
+	if count < _alloc_size:
 		return count
-	for i in MAX_AGENTS:
+	# Grow arrays if under SOFT_CAP
+	if _alloc_size < SOFT_CAP:
+		var new_size: int = mini(_alloc_size + 1000, SOFT_CAP)
+		_grow_arrays(new_size)
+		return count
+	# Scan for dead slot
+	for i in _alloc_size:
 		if flags[i] == 0:
 			return i
 	return -1
+
+
+func _grow_arrays(new_size: int) -> void:
+	var old: int = _alloc_size
+	_alloc_size = new_size
+	pos_x.resize(new_size);          for i in range(old, new_size): pos_x[i] = 0.0
+	pos_y.resize(new_size);          for i in range(old, new_size): pos_y[i] = 0.0
+	dir_x.resize(new_size);          for i in range(old, new_size): dir_x[i] = 1.0
+	dir_y.resize(new_size);          for i in range(old, new_size): dir_y[i] = 0.0
+	energy.resize(new_size);         for i in range(old, new_size): energy[i] = 0.0
+	speed.resize(new_size);          for i in range(old, new_size): speed[i] = 0.0
+	size_arr.resize(new_size);       for i in range(old, new_size): size_arr[i] = 0.0
+	metabolism.resize(new_size);     for i in range(old, new_size): metabolism[i] = 0.0
+	division_threshold.resize(new_size); for i in range(old, new_size): division_threshold[i] = 0.0
+	mutation_rate.resize(new_size);  for i in range(old, new_size): mutation_rate[i] = 0.0
+	resistance.resize(new_size);     for i in range(old, new_size): resistance[i] = 0.0
+	virulence.resize(new_size);      for i in range(old, new_size): virulence[i] = 0.0
+	age.resize(new_size);            for i in range(old, new_size): age[i] = 0
+	max_age.resize(new_size);        for i in range(old, new_size): max_age[i] = 0
+	agent_type.resize(new_size);     for i in range(old, new_size): agent_type[i] = 0
+	flags.resize(new_size);          for i in range(old, new_size): flags[i] = 0
+	dead_timer.resize(new_size);     for i in range(old, new_size): dead_timer[i] = 0
+	run_timer.resize(new_size);      for i in range(old, new_size): run_timer[i] = 0
+	spore_timer.resize(new_size);    for i in range(old, new_size): spore_timer[i] = 0
+	brain_state.resize(new_size);    for i in range(old, new_size): brain_state[i] = 0
+	target_i.resize(new_size);       for i in range(old, new_size): target_i[i] = -1
+	sense_radius.resize(new_size);   for i in range(old, new_size): sense_radius[i] = 0.0
 
 
 func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
