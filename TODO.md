@@ -76,23 +76,28 @@
 ## Phase 3c — Architecture Écologique & Performance
 
 ### Simulation auto-entretenue
-- [~] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
+- [x] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
 - [ ] Équilibre division/mort : taux division > taux mort naturelle dans env stable
 - [ ] Nutrient cycle fermé : production (plantes) == consommation (bactéries) à l'équilibre
 
 ### Scale
-- [ ] MAX_AGENTS dynamique (RAM-based) — viser 10K→100K agents
-- [ ] LOD simulation : chunks proches = individuel, chunks distants = agrégé (populations moyennes)
+- [x] MAX_AGENTS dynamique (RAM-based) — calculé au démarrage, budget 4GB, ~20M max
+- [x] LOD simulation : PopulationLOD — zone active individus, hors zone = counts agrégés par chunk
 - [ ] Chunk data compression pour chunks inactifs
 
 ### Monde persistant
-- [ ] Biomes ne disparaissent pas en dehors du viewport (bug actuel : chunks evictés perdent leur biome)
-- [ ] Regen sur tous les chunks, pas seulement actifs (fait)
-- [ ] Chunk eviction préserve le biome_type pour re-création correcte
+- [x] Biomes persistants via _biome_map séparé, jamais evicté
+- [x] Regen sur tous les chunks (pas seulement actifs)
+- [x] Chunk eviction préserve le biome_type
 
-### Perf
+### Perf — GPU Compute (après stabilisation écologie)
+- [ ] Diffusion WorldGrid → compute shader GLSL via RenderingDevice (gain massif, stencil uniforme)
+- [ ] Mouvement agents → compute shader (intégration position)
+- [ ] Spatial hash GPU pour détection voisins
+- [ ] FSM complexe + division/mort restent CPU
+- [ ] GDExtension C++ pour SIMD si FSM devient bottleneck
 - [ ] TICK_STRIDE adaptatif selon charge CPU
-- [ ] Profiling : identifier le vrai bottleneck à 10K agents
+- [ ] Profiling : identifier bottleneck à 100K+ agents
 
 ---
 
