@@ -1,7 +1,7 @@
 class_name AgentBase
 extends Node2D
 
-signal died(agent: AgentBase)
+signal died
 
 var energy: float = 1.0
 var age: int = 0
@@ -33,7 +33,7 @@ func die() -> void:
 		return
 	alive = false
 	_restitute_nutrients()
-	died.emit(self)
+	died.emit()
 
 
 func get_grid_pos() -> Vector2i:

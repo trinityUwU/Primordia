@@ -45,13 +45,13 @@ func spawn_virus(pos: Vector2) -> Node2D:
 	return v
 
 
-func _on_agent_died(agent: Node2D) -> void:
+func _on_agent_died() -> void:
 	pass
 
 
 func _register_agent(agent: Node2D) -> void:
 	_agents.append(agent)
-	agent.died.connect(_on_agent_died.bind(agent))
+	agent.died.connect(_on_agent_died)
 	if _agent_layer != null:
 		_agent_layer.add_child(agent)
 	else:
