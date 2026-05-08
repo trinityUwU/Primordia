@@ -60,7 +60,7 @@ var _active_chunks: Array[Vector2i] = []
 var _biome_map: Dictionary = {}         # Vector2i → int — persistent, never evicted
 
 const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
-const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.03, 0.06]
+const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.003, 0.06]
 const _DIFFUSE_INTERVAL: float = 0.1
 
 var _diffuse_accumulator: float = 0.0

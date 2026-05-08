@@ -230,7 +230,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	speed[i]             = 50.0
 	size_arr[i]          = 2.5
 	metabolism[i]        = 0.003
-	division_threshold[i]= 5.0
+	division_threshold[i]= 1.5
 	mutation_rate[i]     = 0.01
 	resistance[i]        = 0.8
 	virulence[i]         = 0.9
@@ -709,7 +709,7 @@ func _protozoa_hunt(i: int) -> void:
 
 
 func _protozoa_reproduce(i: int) -> void:
-	if _alive_count >= MAX_AGENTS:
+	if _alive_count >= SOFT_CAP:
 		brain_state[i] = STATE_IDLE
 		return
 	var angle: float = randf() * TAU
@@ -751,7 +751,7 @@ func _tick_plant(i: int) -> void:
 	run_timer[i] -= 1
 	if run_timer[i] <= 0:
 		run_timer[i] = randi_range(100, 300)
-		if energy[i] >= division_threshold[i] and _alive_count < MAX_AGENTS:
+		if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
 			var angle: float = randf() * TAU
 			var dist: float = randf_range(16.0, 48.0)
 			var ci: int = spawn_plant(
@@ -787,7 +787,7 @@ func _tick_fungi(i: int) -> void:
 		run_timer[i] = randi_range(40, 100)
 		_fungi_decompose(i)
 	# Spread
-	if energy[i] >= division_threshold[i] and _alive_count < MAX_AGENTS:
+	if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
 		var angle: float = randf() * TAU
 		var dist: float = randf_range(8.0, 32.0)
 		var ci: int = spawn_fungi(
