@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://worldmain"]
+
+[ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
+[ext_resource type="PackedScene" uid="uid://timecontrolbar" path="res://scenes/ui/TimeControlBar.tscn" id="3_tcbar"]
+[ext_resource type="PackedScene" uid="uid://debugoverlay" path="res://scenes/ui/DebugOverlay.tscn" id="4_dbg"]
+[ext_resource type="Shader" path="res://shaders/grid_debug.gdshader" id="5_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
+shader = ExtResource("5_shader")
+shader_parameter/cell_size = 8.0
+shader_parameter/grid_color = Color(1, 1, 1, 0.1)
+
+[node name="World" type="Node2D"]
+script = ExtResource("1_world")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(1024, 512)
+zoom = Vector2(1.5, 1.5)
+script = ExtResource("2_cam")
+
+[node name="GridRenderer" type="Node2D" parent="."]
+visible = false
+
+[node name="GridShaderRect" type="ColorRect" parent="GridRenderer"]
+material = SubResource("ShaderMaterial_grid")
+color = Color(0, 0, 0, 0)
+size = Vector2(2048, 2048)
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="TimeControlBar" parent="UILayer" instance=ExtResource("3_tcbar")]
+
+[node name="DebugOverlay" parent="UILayer" instance=ExtResource("4_dbg")]
