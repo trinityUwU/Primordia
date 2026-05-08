@@ -63,6 +63,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if _panel.get_global_rect().has_point(mb.position):
+				return
 			_painting = mb.pressed
 			if _painting:
 				_paint_at(mb.position)
