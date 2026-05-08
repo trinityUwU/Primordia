@@ -50,7 +50,13 @@ func get_or_create_chunk(chunk_coord: Vector2i) -> Dictionary:
 		arr.resize(cells)
 		arr.fill(DEFAULT_VALUES[key])
 		fields[key] = arr
-	var chunk: Dictionary = { "fields": fields, "last_active": _wall_clock }
+	var buf: Dictionary = {}
+	for key in FIELD_KEYS:
+		var arr: Array[float] = []
+		arr.resize(cells)
+		arr.fill(0.0)
+		buf[key] = arr
+	var chunk: Dictionary = { "fields": fields, "_buf": buf, "last_active": _wall_clock }
 	_chunks[chunk_coord] = chunk
 	return chunk
 
@@ -143,8 +149,7 @@ func diffuse(key: String, rate: float) -> void:
 func _diffuse_chunk(coord: Vector2i, key: String, rate: float) -> void:
 	var chunk: Dictionary = get_or_create_chunk(coord)
 	var src: Array = chunk["fields"][key]
-	var dst: Array[float] = []
-	dst.resize(CHUNK_SIZE * CHUNK_SIZE)
+	var dst: Array = chunk["_buf"][key]
 	var s: int = CHUNK_SIZE
 	for y in range(1, s - 1):
 		for x in range(1, s - 1):
@@ -156,6 +161,7 @@ func _diffuse_chunk(coord: Vector2i, key: String, rate: float) -> void:
 			)
 			dst[idx] = src[idx] + rate * laplacian
 	_copy_chunk_border(src, dst, s)
+	chunk["_buf"][key] = src
 	chunk["fields"][key] = dst
 
 

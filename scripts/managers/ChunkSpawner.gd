@@ -35,9 +35,9 @@ func _update_camera_pos() -> void:
 
 
 func _maybe_spawn() -> void:
-	if AgentPool.get_population_count() >= MAX_AGENTS:
+	if AgentPool._alive_count >= MAX_AGENTS:
 		return
-	var to_spawn: int = mini(SPAWN_PER_TICK, MAX_AGENTS - AgentPool.get_population_count())
+	var to_spawn: int = mini(SPAWN_PER_TICK, MAX_AGENTS - AgentPool._alive_count)
 	var spawned: int = 0
 	var attempts: int = 0
 	while spawned < to_spawn and attempts < to_spawn * 4:

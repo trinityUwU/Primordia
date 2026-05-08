@@ -10,9 +10,12 @@ const FLAG_SPORE: int = 4
 const TICK_STRIDE: int = 2
 const DEAD_DECAY_TICKS: int = 300
 const SPORE_MIN_TIMER: int = 100
+const SPATIAL_CELL: float = 64.0
 
 var count: int = 0
+var _alive_count: int = 0
 var _dirty: bool = false
+var _spatial: Dictionary = {}
 
 var pos_x: PackedFloat32Array
 var pos_y: PackedFloat32Array
@@ -102,6 +105,7 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 	spore_timer[i]       = 0
 	if i == count:
 		count += 1
+	_alive_count += 1
 	return i
 
 
@@ -131,6 +135,7 @@ func spawn_virus(px: float, py: float) -> int:
 	spore_timer[i]       = 0
 	if i == count:
 		count += 1
+	_alive_count += 1
 	return i
 
 
@@ -138,6 +143,7 @@ func kill(i: int) -> void:
 	if flags[i] & FLAG_ALIVE == 0:
 		return
 	flags[i] &= ~FLAG_ALIVE
+	_alive_count -= 1
 	dead_timer[i] = DEAD_DECAY_TICKS
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
@@ -150,27 +156,44 @@ func is_alive(i: int) -> bool:
 
 
 func get_population_count() -> int:
-	var n: int = 0
+	return _alive_count
+
+
+func _rebuild_spatial() -> void:
+	_spatial.clear()
 	for i in count:
-		if flags[i] & FLAG_ALIVE:
-			n += 1
-	return n
+		if flags[i] & FLAG_ALIVE == 0:
+			continue
+		var cell: Vector2i = Vector2i(
+			floori(pos_x[i] / SPATIAL_CELL),
+			floori(pos_y[i] / SPATIAL_CELL)
+		)
+		if not _spatial.has(cell):
+			_spatial[cell] = PackedInt32Array()
+		_spatial[cell].append(i)
 
 
 func get_agents_in_radius(px: float, py: float, radius: float) -> PackedInt32Array:
 	var result: PackedInt32Array = PackedInt32Array()
 	var r2: float = radius * radius
-	for i in count:
-		if flags[i] & FLAG_ALIVE == 0:
-			continue
-		var dx: float = pos_x[i] - px
-		var dy: float = pos_y[i] - py
-		if dx * dx + dy * dy <= r2:
-			result.append(i)
+	var cell_radius: int = ceili(radius / SPATIAL_CELL)
+	var cx: int = floori(px / SPATIAL_CELL)
+	var cy: int = floori(py / SPATIAL_CELL)
+	for dy in range(-cell_radius, cell_radius + 1):
+		for dx in range(-cell_radius, cell_radius + 1):
+			var cell: Vector2i = Vector2i(cx + dx, cy + dy)
+			if not _spatial.has(cell):
+				continue
+			for i in _spatial[cell]:
+				var ddx: float = pos_x[i] - px
+				var ddy: float = pos_y[i] - py
+				if ddx * ddx + ddy * ddy <= r2:
+					result.append(i)
 	return result
 
 
 func _on_tick(tick: int) -> void:
+	_rebuild_spatial()
 	_process_agents(tick)
 	compact_dead()
 	_dirty = true
@@ -284,7 +307,7 @@ func _check_sporulation(i: int) -> void:
 func _check_division(i: int) -> void:
 	if energy[i] < division_threshold[i]:
 		return
-	if get_population_count() >= MAX_AGENTS:
+	if _alive_count >= MAX_AGENTS:
 		return
 	var angle: float = randf() * TAU
 	var child_genome: Dictionary = _mutate_genome_inline(i)
