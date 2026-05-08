@@ -26,15 +26,29 @@ func _update_label() -> void:
 	var render_fps: float = _avg_fps()
 	var tick_rate_real: float = SimulationClock.get_sim_fps()
 	var mouse_grid: Vector2i = _get_mouse_grid_coords()
+	var counts: Dictionary = _count_by_type()
 	_label.text = (
-		"FPS: %d\nTick rate: %.1f/s\nPopulation: 0\nZoom: %d\nGrid: %d,%d" % [
+		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nTotal: %d\nZoom: %d\nGrid: %d,%d" % [
 			int(render_fps),
 			tick_rate_real,
+			counts.get(AgentPool.TYPE_BACTERIUM, 0),
+			counts.get(AgentPool.TYPE_VIRUS, 0),
+			AgentPool._alive_count,
 			_zoom_level,
 			mouse_grid.x,
 			mouse_grid.y,
 		]
 	)
+
+
+func _count_by_type() -> Dictionary:
+	var counts: Dictionary = {}
+	for i in AgentPool.count:
+		if AgentPool.flags[i] & AgentPool.FLAG_ALIVE == 0:
+			continue
+		var t: int = AgentPool.agent_type[i]
+		counts[t] = counts.get(t, 0) + 1
+	return counts
 
 
 func _avg_fps() -> float:
