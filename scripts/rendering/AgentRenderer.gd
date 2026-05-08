@@ -18,11 +18,19 @@ func _draw() -> void:
 	var agents: Array = PopulationManager.get_all_agents()
 	for agent in agents:
 		if not agent.alive:
+			_draw_corpse(agent)
 			continue
 		if PopulationManager.is_bacterium(agent):
 			_draw_bacterium(agent)
 		elif PopulationManager.is_virus(agent):
 			_draw_virus(agent)
+
+
+func _draw_corpse(agent: Node2D) -> void:
+	var alpha: float = clampf(float(agent.dead_ticks_remaining) / 300.0, 0.0, 1.0)
+	var radius: float = BACTERIUM_BASE_RADIUS * clampf(agent.size, 0.5, 2.0)
+	var color: Color = Color(0.4, 0.35, 0.3, alpha * 0.7)
+	draw_circle(agent.global_position, radius, color)
 
 
 func _draw_bacterium(b: Node2D) -> void:

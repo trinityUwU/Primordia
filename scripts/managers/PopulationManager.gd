@@ -72,13 +72,18 @@ func _process_agents(tick_num: int) -> void:
 
 
 func _purge_dead() -> void:
-	var alive: Array = []
+	var remaining: Array = []
 	for agent in _agents:
+		if not is_instance_valid(agent):
+			continue
 		if agent.alive:
-			alive.append(agent)
-		elif is_instance_valid(agent):
+			remaining.append(agent)
+		elif agent.dead_ticks_remaining > 0:
+			agent.dead_ticks_remaining -= 1
+			remaining.append(agent)
+		else:
 			agent.queue_free()
-	_agents = alive
+	_agents = remaining
 
 
 func _request_redraw() -> void:

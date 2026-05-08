@@ -10,6 +10,8 @@ var speed: float = 30.0
 var size: float = 1.0
 var alive: bool = true
 var genome: Dictionary = {}
+# Ticks avant suppression du cadavre (10 ticks/s × 30s = 300)
+var dead_ticks_remaining: int = 0
 
 var _direction: Vector2 = Vector2.RIGHT
 
@@ -32,6 +34,7 @@ func die() -> void:
 	if not alive:
 		return
 	alive = false
+	dead_ticks_remaining = 300
 	_restitute_nutrients()
 	died.emit()
 
