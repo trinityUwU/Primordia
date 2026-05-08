@@ -15,26 +15,31 @@ const BIOME_WOOD:  int = 3
 const BIOME_ROCK:  int = 4
 
 const BIOME_REGEN: Dictionary = {
-	0: { "nutrients": 0.004, "water": 0.05,  "oxygen": 0.008 },   # WATER
-	1: { "nutrients": 0.02,  "water": 0.008, "oxygen": 0.004 },   # EARTH
-	2: { "nutrients": 0.05,  "water": 0.02,  "oxygen": 0.015 },   # GRASS
-	3: { "nutrients": 0.07,  "water": 0.025, "oxygen": 0.02 },    # WOOD
-	4: { "nutrients": 0.002, "water": 0.0,   "oxygen": 0.002 },   # ROCK
+	0: { "nutrients": 0.008, "water": 0.02,  "oxygen": 0.012, "ph_toward": 8.1 },   # WATER
+	1: { "nutrients": 0.025, "water": 0.005, "oxygen": 0.008, "ph_toward": 6.5 },   # EARTH
+	2: { "nutrients": 0.06,  "water": 0.015, "oxygen": 0.015, "ph_toward": 6.8 },   # GRASS
+	3: { "nutrients": 0.09,  "water": 0.025, "oxygen": 0.022, "ph_toward": 5.2 },   # WOOD
+	4: { "nutrients": 0.003, "water": 0.001, "oxygen": 0.008, "ph_toward": 7.5 },   # ROCK
 }
 const BIOME_REGEN_CAP: Dictionary = {
-	0: { "nutrients": 0.2,  "water": 1.0,  "oxygen": 0.2 },
-	1: { "nutrients": 0.7,  "water": 0.6,  "oxygen": 0.25 },
-	2: { "nutrients": 1.0,  "water": 0.8,  "oxygen": 0.35 },
-	3: { "nutrients": 1.0,  "water": 0.9,  "oxygen": 0.4 },
-	4: { "nutrients": 0.1,  "water": 0.15, "oxygen": 0.22 },
+	0: { "nutrients": 0.3,  "water": 1.0,  "oxygen": 0.22 },
+	1: { "nutrients": 0.7,  "water": 0.6,  "oxygen": 0.24 },
+	2: { "nutrients": 1.0,  "water": 0.8,  "oxygen": 0.32 },
+	3: { "nutrients": 1.0,  "water": 0.95, "oxygen": 0.38 },
+	4: { "nutrients": 0.08, "water": 0.15, "oxygen": 0.22 },
 }
 
 const BIOME_DEFAULTS: Dictionary = {
-	0: { "nutrients": 0.1, "water": 1.0, "temperature": 15.0, "oxygen": 0.15, "ph": 7.5, "toxins": 0.0, "light": 0.5 },
-	1: { "nutrients": 0.5, "water": 0.4, "temperature": 20.0, "oxygen": 0.21, "ph": 6.8, "toxins": 0.0, "light": 0.9 },
-	2: { "nutrients": 0.7, "water": 0.6, "temperature": 18.0, "oxygen": 0.25, "ph": 6.5, "toxins": 0.0, "light": 1.0 },
-	3: { "nutrients": 0.8, "water": 0.7, "temperature": 16.0, "oxygen": 0.28, "ph": 5.5, "toxins": 0.0, "light": 0.4 },
-	4: { "nutrients": 0.05, "water": 0.1, "temperature": 12.0, "oxygen": 0.21, "ph": 8.0, "toxins": 0.0, "light": 0.8 },
+	# WATER — ocean/lake: dissolved O2, alkaline pH, low nutrients (life supported by microbe recycling)
+	0: { "nutrients": 0.15, "water": 1.0, "temperature": 15.0, "oxygen": 0.18, "ph": 8.1, "toxins": 0.0, "light": 0.6 },
+	# EARTH — bare soil: moderate organic matter, moderate moisture
+	1: { "nutrients": 0.35, "water": 0.35, "temperature": 20.0, "oxygen": 0.21, "ph": 6.5, "toxins": 0.0, "light": 0.9 },
+	# GRASS — grassland: rich in nutrients, good moisture, full sunlight
+	2: { "nutrients": 0.6,  "water": 0.55, "temperature": 18.0, "oxygen": 0.23, "ph": 6.8, "toxins": 0.0, "light": 1.0 },
+	# WOOD — forest: very rich organic matter, high moisture, canopy blocks light, acidic from leaf litter
+	3: { "nutrients": 0.85, "water": 0.75, "temperature": 16.0, "oxygen": 0.27, "ph": 5.2, "toxins": 0.0, "light": 0.25 },
+	# ROCK — sterile mineral: almost no nutrients, dry, neutral pH
+	4: { "nutrients": 0.02, "water": 0.06, "temperature": 28.0, "oxygen": 0.21, "ph": 7.5, "toxins": 0.0, "light": 0.95 },
 }
 
 const DEFAULT_VALUES: Dictionary = {
@@ -248,12 +253,22 @@ func _regenerate_fields() -> void:
 		var regen: Dictionary = BIOME_REGEN.get(biome, BIOME_REGEN[BIOME_EARTH])
 		var caps: Dictionary = BIOME_REGEN_CAP.get(biome, BIOME_REGEN_CAP[BIOME_EARTH])
 		var fields: Dictionary = chunk["fields"]
-		for key in regen:
-			var rate: float = regen[key]
+		for key in ["nutrients", "water", "oxygen"]:
+			var rate: float = regen.get(key, 0.0)
 			if rate <= 0.0:
 				continue
-			var cap: float = caps[key]
+			var cap: float = caps.get(key, 1.0)
 			var arr: Array = fields[key]
 			for i in arr.size():
 				if arr[i] < cap:
 					arr[i] = minf(arr[i] + rate, cap)
+		# Atmospheric O2 buffer — always drift toward 0.21 baseline
+		var o2_arr: Array = fields["oxygen"]
+		for i in o2_arr.size():
+			if o2_arr[i] < 0.19:
+				o2_arr[i] = minf(o2_arr[i] + 0.005, 0.21)
+		# Toxins naturally degrade
+		var tox_arr: Array = fields["toxins"]
+		for i in tox_arr.size():
+			if tox_arr[i] > 0.0:
+				tox_arr[i] = maxf(tox_arr[i] - 0.01, 0.0)

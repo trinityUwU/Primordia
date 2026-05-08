@@ -126,7 +126,7 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 	energy[i]            = genome.get("energy", 1.0)
 	speed[i]             = genome.get("move_speed", 30.0)
 	size_arr[i]          = genome.get("size", 1.0)
-	metabolism[i]        = genome.get("metabolism", 0.02)
+	metabolism[i]        = genome.get("metabolism", 0.008)
 	division_threshold[i]= genome.get("division_threshold", 1.0)
 	mutation_rate[i]     = genome.get("mutation_rate", 0.02)
 	resistance[i]        = genome.get("resistance", 0.5)
@@ -279,8 +279,12 @@ func kill(i: int) -> void:
 	dead_timer[i] = DEAD_DECAY_TICKS
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
-	var cur: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
-	WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur + energy[i] * 0.3, 1.0))
+	# Return nutrients to soil (decomposition)
+	var cur_n: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
+	WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur_n + energy[i] * 0.5, 1.0))
+	# Dead organic matter also slightly reduces O2 (decomposition consumes O2)
+	var cur_o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
+	WorldGrid.set_cell_value(gx, gy, "oxygen", maxf(cur_o2 - 0.01, 0.0))
 
 
 func is_alive(i: int) -> bool:
@@ -385,7 +389,21 @@ func _tick_spore(i: int) -> void:
 
 
 func _consume_energy(i: int) -> void:
-	energy[i] -= metabolism[i]
+	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
+	var temp: float = WorldGrid.get_cell_value(gx, gy, "temperature")
+	# Q10 rule: metabolism doubles every 10°C, optimal ~25°C
+	# Below 5°C: near-dormant. Above 45°C: thermal death risk
+	var temp_factor: float = 1.0
+	if temp < 5.0:
+		temp_factor = 0.2
+	elif temp < 15.0:
+		temp_factor = 0.6
+	elif temp > 40.0:
+		temp_factor = 2.5
+	elif temp > 35.0:
+		temp_factor = 1.5
+	energy[i] -= metabolism[i] * temp_factor
 	if energy[i] <= 0.0:
 		kill(i)
 
@@ -431,9 +449,16 @@ func _consume_nutrients(i: int) -> void:
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	var available: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
-	var uptake: float = minf(0.03, available)
+	var uptake: float = minf(0.008, available)  # reduced from 0.03 — realistic microbial uptake
 	WorldGrid.set_cell_value(gx, gy, "nutrients", available - uptake)
-	energy[i] = minf(energy[i] + uptake, 2.0)
+	# O2 consumption (aerobic respiration)
+	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
+	var o2_used: float = minf(uptake * 0.5, o2)
+	WorldGrid.set_cell_value(gx, gy, "oxygen", o2 - o2_used)
+	# Toxin production (metabolic waste)
+	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
+	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + uptake * 0.1, 1.0))
+	energy[i] = minf(energy[i] + uptake * 2.0, 2.0)
 
 
 func _check_sporulation(i: int) -> void:
