@@ -271,4 +271,4 @@ func _regenerate_fields() -> void:
 		var tox_arr: Array = fields["toxins"]
 		for i in tox_arr.size():
 			if tox_arr[i] > 0.0:
-				tox_arr[i] = maxf(tox_arr[i] - 0.01, 0.0)
+				tox_arr[i] = maxf(tox_arr[i] - 0.001, 0.0)
