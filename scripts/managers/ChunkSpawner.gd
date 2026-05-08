@@ -1,8 +1,10 @@
 extends Node
 
-const ACTIVE_SPAWN_RADIUS: float = 2500.0
-const TARGET_DENSITY: float = 0.02
-const SPAWN_PER_TICK: int = 5
+const ACTIVE_SPAWN_RADIUS: float = 1200.0  # zone active raisonnable
+const MAX_AGENTS: int = 800               # cap dur global
+const TARGET_DENSITY: float = 0.005       # densité très réduite
+const SPAWN_PER_TICK: int = 3
+const SPAWN_EVERY_N_TICKS: int = 5        # spawn pas à chaque tick
 
 var _camera_world_pos: Vector2 = Vector2.ZERO
 
@@ -17,10 +19,11 @@ func _find_agent_layer() -> void:
 	pass
 
 
-func _on_tick(_tick: int) -> void:
+func _on_tick(tick: int) -> void:
 	_update_camera_pos()
 	WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_SPAWN_RADIUS)
-	_maybe_spawn()
+	if tick % SPAWN_EVERY_N_TICKS == 0:
+		_maybe_spawn()
 
 
 func _update_camera_pos() -> void:
@@ -30,15 +33,16 @@ func _update_camera_pos() -> void:
 
 
 func _maybe_spawn() -> void:
-	var active_cells: int = _count_active_cells()
-	var target_count: int = int(active_cells * TARGET_DENSITY)
 	var current_count: int = PopulationManager.get_population_count()
+	if current_count >= MAX_AGENTS:
+		return
+	var active_cells: int = _count_active_cells()
+	var target_count: int = mini(int(active_cells * TARGET_DENSITY), MAX_AGENTS)
 	if current_count >= target_count:
 		return
 	var to_spawn: int = mini(SPAWN_PER_TICK, target_count - current_count)
 	for i in to_spawn:
-		var pos: Vector2 = _random_spawn_pos()
-		PopulationManager.spawn_bacterium(pos)
+		PopulationManager.spawn_bacterium(_random_spawn_pos())
 
 
 func _count_active_cells() -> int:

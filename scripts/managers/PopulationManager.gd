@@ -57,10 +57,20 @@ func _on_tick(tick_num: int) -> void:
 	_request_redraw()
 
 
+# Stagger: chaque agent tique 1 fois sur TICK_STRIDE ticks pour étaler la charge.
+const TICK_STRIDE: int = 2
+
 func _process_agents(tick_num: int) -> void:
-	for agent in _agents:
+	var count: int = _agents.size()
+	if count == 0:
+		return
+	var start: int = tick_num % TICK_STRIDE
+	var i: int = start
+	while i < count:
+		var agent = _agents[i]
 		if agent.alive:
 			agent._tick(tick_num)
+		i += TICK_STRIDE
 
 
 func _purge_dead() -> void:
