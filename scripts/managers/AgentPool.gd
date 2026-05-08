@@ -26,6 +26,10 @@ var count: int = 0
 var _alive_count: int = 0
 var _dirty: bool = false
 var _needs_compact: bool = false
+var _births_tick: int = 0
+var _deaths_tick: int = 0
+var _o2_consumed_tick: float = 0.0
+var _o2_produced_tick: float = 0.0
 var _spatial: Dictionary = {}
 
 var pos_x: PackedFloat32Array
@@ -277,6 +281,8 @@ func kill(i: int) -> void:
 	flags[i] &= ~FLAG_ALIVE
 	_alive_count -= 1
 	dead_timer[i] = DEAD_DECAY_TICKS
+	_deaths_tick += 1
+
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	# Return nutrients to soil (decomposition)
@@ -455,6 +461,8 @@ func _consume_nutrients(i: int) -> void:
 	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
 	var o2_used: float = minf(uptake * 0.5, o2)
 	WorldGrid.set_cell_value(gx, gy, "oxygen", o2 - o2_used)
+	_o2_consumed_tick += o2_used
+
 	# Toxin production (metabolic waste)
 	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
 	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + uptake * 0.1, 1.0))
@@ -489,6 +497,8 @@ func _check_division(i: int) -> void:
 	)
 	if ci >= 0:
 		energy[ci] = cost * 0.5
+		_births_tick += 1
+
 
 
 func _mutate_genome_inline(i: int) -> Dictionary:

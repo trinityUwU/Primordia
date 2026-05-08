@@ -6,11 +6,35 @@ var _camera: Camera2D
 var _zoom_level: int = 0
 var _render_fps_samples: Array[float] = []
 
+# Per-second metrics (sampled every second of sim time)
+var _last_sample_sim_time: float = 0.0
+var _births_per_sec: float = 0.0
+var _deaths_per_sec: float = 0.0
+var _o2_consumed_per_sec: float = 0.0
+var _o2_produced_per_sec: float = 0.0
+
 
 func _ready() -> void:
 	visible = false
 	await get_tree().process_frame
 	_camera = get_tree().get_first_node_in_group("main_camera")
+	SimulationClock.tick_processed.connect(_on_tick)
+
+
+func _on_tick(_tick: int) -> void:
+	var sim_time: float = SimulationClock.elapsed_sim_time
+	var elapsed: float = sim_time - _last_sample_sim_time
+	if elapsed >= 1.0:
+		var factor: float = 1.0 / elapsed
+		_births_per_sec = AgentPool._births_tick * factor
+		_deaths_per_sec = AgentPool._deaths_tick * factor
+		_o2_consumed_per_sec = AgentPool._o2_consumed_tick * factor
+		_o2_produced_per_sec = AgentPool._o2_produced_tick * factor
+		AgentPool._births_tick = 0
+		AgentPool._deaths_tick = 0
+		AgentPool._o2_consumed_tick = 0.0
+		AgentPool._o2_produced_tick = 0.0
+		_last_sample_sim_time = sim_time
 
 
 func _process(delta: float) -> void:
@@ -35,23 +59,39 @@ func _update_label() -> void:
 		var m: int = hm.get("mode") if hm.get("mode") != null else 0
 		if m != 0:
 			heatmap_str = "\nHeatmap: " + lbl[m]
+	var net: float = _births_per_sec - _deaths_per_sec
+	var net_str: String = ("+%.1f" % net) if net >= 0.0 else ("%.1f" % net)
 	_label.text = (
-		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nProtozoa: %d\nPlants: %d\nFungi: %d\nTotal: %d\nVirtual: %d\nZoom: %d\nGrid: %d,%d%s" % [
-			int(render_fps),
-			tick_rate_real,
-			counts.get(AgentPool.TYPE_BACTERIUM, 0),
-			counts.get(AgentPool.TYPE_VIRUS, 0),
-			counts.get(AgentPool.TYPE_PROTOZOA, 0),
-			counts.get(AgentPool.TYPE_PLANT, 0),
-			counts.get(AgentPool.TYPE_FUNGI, 0),
-			AgentPool._alive_count,
-			PopulationLOD.get_total_aggregate_population(),
-			_zoom_level,
-			mouse_grid.x,
-			mouse_grid.y,
-			heatmap_str,
-		]
-	)
+		"FPS: %d  Tick: %.1f/s\n"
+		+ "─── Population ───\n"
+		+ "Bacteria: %d\nVirus: %d\nProtozoa: %d\nPlants: %d\nFungi: %d\n"
+		+ "Total: %d  Virtual: %d\n"
+		+ "─── Flux /sec ───\n"
+		+ "Births: +%.1f  Deaths: -%.1f\n"
+		+ "Net: %s\n"
+		+ "─── O2 /sec ─────\n"
+		+ "Consumed: -%.4f\n"
+		+ "Produced: +%.4f\n"
+		+ "Balance: %s\n"
+		+ "─── Env ──────────\n"
+		+ "Zoom: %d  Grid: %d,%d%s"
+	) % [
+		int(render_fps), tick_rate_real,
+		counts.get(AgentPool.TYPE_BACTERIUM, 0),
+		counts.get(AgentPool.TYPE_VIRUS, 0),
+		counts.get(AgentPool.TYPE_PROTOZOA, 0),
+		counts.get(AgentPool.TYPE_PLANT, 0),
+		counts.get(AgentPool.TYPE_FUNGI, 0),
+		AgentPool._alive_count,
+		PopulationLOD.get_total_aggregate_population(),
+		_births_per_sec, _deaths_per_sec,
+		net_str,
+		_o2_consumed_per_sec,
+		_o2_produced_per_sec,
+		("+%.4f" % (_o2_produced_per_sec - _o2_consumed_per_sec)) if (_o2_produced_per_sec - _o2_consumed_per_sec) >= 0.0 else ("%.4f" % (_o2_produced_per_sec - _o2_consumed_per_sec)),
+		_zoom_level, mouse_grid.x, mouse_grid.y,
+		heatmap_str,
+	]
 
 
 func _count_by_type() -> Dictionary:

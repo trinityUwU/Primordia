@@ -144,6 +144,7 @@
 - [ ] Mutation génétique à chaque génération (stats ±X%)
 - [ ] Sélection naturelle : les mieux adaptés survivent plus
 - [ ] Spéciation sur longue durée (divergence stats > seuil)
+- [ ] Héritage ancestral : traits = moyenne des N dernières générations + mutation (voir Phase 6)
 
 ---
 
@@ -200,6 +201,44 @@
 - [ ] Leaderboard espèces : dominantes, en déclin, menacées d'extinction
 - [ ] Événements log : extinctions, épidémies, pics de prédation, spéciations
 - [ ] Export snapshot JSON local : état complet à un instant T
+
+---
+
+## Phase 6 — Biologie Profonde & Survie Réaliste
+
+### Besoins vitaux par specimen (requirements = conditions de vie)
+- [ ] Faim : réserve énergétique, mort par inanition si vide
+- [ ] Soif : réserve hydrique, mort par déshydratation
+- [ ] Respiration : consommation O2, mort par asphyxie (O2 < seuil)
+- [ ] Thermorégulation : plage de température viable par espèce, mort par hypothermie/hyperthermie
+- [ ] Pression atmosphérique : impact sur espèces aquatiques vs terrestres
+
+### Systèmes physiologiques
+- [ ] Sang : volume sanguin, hémorragie (perte % par blessure), mort si > 40% perdu
+- [ ] Transpiration : perte hydrique en chaleur, nécessite réhydratation
+- [ ] Immunité : résistance aux infections, mémoire immunitaire post-guérison
+- [ ] Blessures : fractures, lacérations — réduction stats (vitesse, force), guérison possible
+- [ ] Infection : bactéries/virus qui colonisent un hôte, dégradation progressive organes
+- [ ] Fatigue musculaire : effort → accumulation de lactate → ralentissement
+
+### Génétique & évolution réaliste
+- [ ] Héritage ancestral : chaque trait = moyenne des N dernières générations + mutation
+- [ ] Traits comportementaux héritables : paresse, agressivité, socialité, timidité
+- [ ] Convergence évolutive : mutation rare (1/1B) peut créer un nouveau trait dominant
+- [ ] Arbre généalogique : tracer les lignées, visualiser les branches
+- [ ] Pression de sélection : traits favorables dans l'environnement = reproduction plus fréquente
+- [ ] Dérive génétique : petites populations → traits aléatoires fixés même sans sélection
+
+### Interactions sociales
+- [ ] Besoin de contact social (mammifères, insectes sociaux) — stress si isolé
+- [ ] Formation de groupes, hiérarchies, coopération
+- [ ] Transmission culturelle : comportements appris transmis aux descendants
+
+### Espèces macro (Phase 3 étendue)
+- [ ] Reptiles (lézards, serpents) : ectothermes, dépendants température externe
+- [ ] Insectes : arthropodes, exosquelette, métamorphose, colonies
+- [ ] Mammifères simples : endothermes, gestation, allaitement, soins parentaux
+- [ ] Humanoïdes (très long terme) : outils, langage, société
 
 ---
 
