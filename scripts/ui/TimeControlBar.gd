@@ -1,11 +1,11 @@
 extends Control
 
-@onready var _btn_pause: Button = $HBox/BtnPause
-@onready var _btn_slower: Button = $HBox/BtnSlower
-@onready var _btn_faster: Button = $HBox/BtnFaster
-@onready var _label_speed: Label = $HBox/LabelSpeed
-@onready var _label_tick: Label = $HBox/LabelTick
-@onready var _label_time: Label = $HBox/LabelTime
+@onready var _btn_pause: Button = $Panel/HBox/BtnPause
+@onready var _btn_slower: Button = $Panel/HBox/BtnSlower
+@onready var _btn_faster: Button = $Panel/HBox/BtnFaster
+@onready var _label_speed: Label = $Panel/HBox/LabelSpeed
+@onready var _label_tick: Label = $Panel/HBox/LabelTick
+@onready var _label_time: Label = $Panel/HBox/LabelTime
 
 
 func _ready() -> void:
