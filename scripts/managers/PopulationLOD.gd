@@ -13,6 +13,9 @@ var _last_active_set: Dictionary = {}
 
 var _active_radius: float = 0.0
 
+var _last_cam_pos: Vector2 = Vector2(-999999, -999999)
+var _last_radius: float = 0.0
+
 
 func _ready() -> void:
 	SimulationClock.tick_processed.connect(_on_tick)
@@ -60,6 +63,13 @@ func _update_active_zone() -> void:
 	var half: Vector2 = vp_size * 0.5 / camera.zoom
 	_active_radius = half.length() + CHUNK_PX * 2.0
 	var cam_pos: Vector2 = camera.global_position
+
+	var pos_delta: float = cam_pos.distance_squared_to(_last_cam_pos)
+	var radius_delta: float = abs(_active_radius - _last_radius) / max(_last_radius, 1.0)
+	if pos_delta < CHUNK_PX * CHUNK_PX and radius_delta < 0.15:
+		return
+	_last_cam_pos = cam_pos
+	_last_radius = _active_radius
 
 	# Build new active set
 	var new_set: Dictionary = {}

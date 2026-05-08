@@ -12,6 +12,9 @@ const BIOME_COLORS: Array[Color] = [
 var active: bool = false
 var selected_biome: int = 1
 var _painting: bool = false
+var brush_size: int = 1
+
+var _brush_label: Label
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _buttons: VBoxContainer = $Panel/VBox/Buttons
@@ -20,6 +23,16 @@ var _painting: bool = false
 func _ready() -> void:
 	_panel.visible = false
 	_build_palette()
+	_brush_label = Label.new()
+	_brush_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	$Panel/VBox.add_child(_brush_label)
+	_update_brush_label()
+
+
+func _update_brush_label() -> void:
+	if _brush_label:
+		var w: int = brush_size * 2 - 1
+		_brush_label.text = "Brush: %dx%d  [scroll]" % [w, w]
 
 
 func _build_palette() -> void:
@@ -60,6 +73,20 @@ func _input(event: InputEvent) -> void:
 	if not active:
 		return
 
+	if event is InputEventMouseButton and active:
+		var mb := event as InputEventMouseButton
+		if mb.pressed:
+			if mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+				brush_size = mini(brush_size + 1, 5)
+				_update_brush_label()
+				get_viewport().set_input_as_handled()
+				return
+			elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				brush_size = maxi(brush_size - 1, 1)
+				_update_brush_label()
+				get_viewport().set_input_as_handled()
+				return
+
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
@@ -82,5 +109,8 @@ func _paint_at(screen_pos: Vector2) -> void:
 		return
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	var world_pos: Vector2 = camera.global_position + (screen_pos - vp_size * 0.5) / camera.zoom
-	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(world_pos)
-	WorldGrid.set_chunk_biome(chunk_coord, selected_biome)
+	var center_chunk: Vector2i = WorldGrid.world_to_chunk(world_pos)
+	var radius: int = brush_size - 1
+	for dy in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			WorldGrid.set_chunk_biome(center_chunk + Vector2i(dx, dy), selected_biome)

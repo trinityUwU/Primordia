@@ -37,6 +37,19 @@ func _seed_world() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
+	# Seed a few plants and fungi regardless of toggles
+	for _i in 5:
+		var pos: Vector2 = _random_spawn_pos()
+		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+		if biome != WorldGrid.BIOME_ROCK and biome != WorldGrid.BIOME_WATER:
+			AgentPool.spawn_plant(pos.x, pos.y)
+	for _i in 5:
+		var pos: Vector2 = _random_spawn_pos()
+		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+		if biome != WorldGrid.BIOME_ROCK and biome != WorldGrid.BIOME_WATER:
+			AgentPool.spawn_fungi(pos.x, pos.y)
 
 
 func _on_tick(tick: int) -> void:
@@ -60,9 +73,9 @@ func _update_camera_pos() -> void:
 
 
 func _maybe_spawn() -> void:
-	if AgentPool._alive_count >= MAX_AGENTS:
+	if AgentPool._alive_count >= AgentPool.SOFT_CAP:
 		return
-	var to_spawn: int = mini(SPAWN_PER_TICK, MAX_AGENTS - AgentPool._alive_count)
+	var to_spawn: int = mini(SPAWN_PER_TICK, AgentPool.SOFT_CAP - AgentPool._alive_count)
 	var spawned: int = 0
 	var attempts: int = 0
 	while spawned < to_spawn and attempts < to_spawn * 8:
