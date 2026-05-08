@@ -10,6 +10,8 @@ const MIN_NUTRIENTS_TO_SPAWN: float = 0.1
 
 var _camera_world_pos: Vector2 = Vector2.ZERO
 var _last_valid_camera_pos: Vector2 = Vector2.ZERO
+var spawn_bacteria_enabled: bool = true
+var spawn_virus_enabled: bool = true
 
 
 func _ready() -> void:
@@ -46,7 +48,12 @@ func _maybe_spawn() -> void:
 		var pos: Vector2 = _random_spawn_pos()
 		if not _can_spawn_at(pos):
 			continue
-		AgentPool.spawn_bacterium(pos.x, pos.y)
+		if spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
+			AgentPool.spawn_bacterium(pos.x, pos.y)
+		elif spawn_virus_enabled:
+			AgentPool.spawn_virus(pos.x, pos.y)
+		else:
+			continue
 		spawned += 1
 
 
