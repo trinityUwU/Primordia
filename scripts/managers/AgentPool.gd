@@ -17,7 +17,7 @@ const FLAG_ALIVE: int = 1
 const FLAG_GRAM_POS: int = 2
 const FLAG_SPORE: int = 4
 
-const TICK_STRIDE: int = 2
+var TICK_STRIDE: int = 2
 const DEAD_DECAY_TICKS: int = 300
 const SPORE_MIN_TIMER: int = 100
 const SPATIAL_CELL: float = 64.0
@@ -30,6 +30,7 @@ var _births_tick: int = 0
 var _deaths_tick: int = 0
 var _o2_consumed_tick: float = 0.0
 var _o2_produced_tick: float = 0.0
+var _type_counts: PackedInt32Array
 var _spatial: Dictionary = {}
 
 var pos_x: PackedFloat32Array
@@ -103,6 +104,8 @@ func _resize_arrays(n: int) -> void:
 	brain_state.resize(n);    brain_state.fill(0)
 	target_i.resize(n);       target_i.fill(-1)
 	sense_radius.resize(n);   sense_radius.fill(0.0)
+	_type_counts.resize(5)
+	_type_counts.fill(0)
 
 
 func _find_free_slot() -> int:
@@ -145,6 +148,7 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 	if i == count:
 		count += 1
 	_alive_count += 1
+	_type_counts[TYPE_BACTERIUM] += 1
 	return i
 
 
@@ -175,6 +179,7 @@ func spawn_virus(px: float, py: float) -> int:
 	if i == count:
 		count += 1
 	_alive_count += 1
+	_type_counts[TYPE_VIRUS] += 1
 	return i
 
 
@@ -208,6 +213,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	if i == count:
 		count += 1
 	_alive_count += 1
+	_type_counts[TYPE_PROTOZOA] += 1
 	return i
 
 
@@ -240,6 +246,7 @@ func spawn_plant(px: float, py: float) -> int:
 	if i == count:
 		count += 1
 	_alive_count += 1
+	_type_counts[TYPE_PLANT] += 1
 	return i
 
 
@@ -272,6 +279,7 @@ func spawn_fungi(px: float, py: float) -> int:
 	if i == count:
 		count += 1
 	_alive_count += 1
+	_type_counts[TYPE_FUNGI] += 1
 	return i
 
 
@@ -280,6 +288,8 @@ func kill(i: int) -> void:
 		return
 	flags[i] &= ~FLAG_ALIVE
 	_alive_count -= 1
+	if agent_type[i] < _type_counts.size():
+		_type_counts[agent_type[i]] -= 1
 	dead_timer[i] = DEAD_DECAY_TICKS
 	_deaths_tick += 1
 
@@ -341,6 +351,18 @@ func _process(_delta: float) -> void:
 
 
 func _on_tick(tick: int) -> void:
+	# Adapt stride to keep processing load proportional
+	if tick % 30 == 0:
+		if _alive_count > 20000:
+			TICK_STRIDE = 8
+		elif _alive_count > 10000:
+			TICK_STRIDE = 6
+		elif _alive_count > 5000:
+			TICK_STRIDE = 4
+		elif _alive_count > 2000:
+			TICK_STRIDE = 3
+		else:
+			TICK_STRIDE = 2
 	_rebuild_spatial()
 	_process_agents(tick)
 	_needs_compact = true
@@ -485,6 +507,9 @@ func _check_division(i: int) -> void:
 	if energy[i] < division_threshold[i]:
 		return
 	if _alive_count >= MAX_AGENTS:
+		return
+	# Throttle division when population is high — reduces exponential growth
+	if _alive_count > 1000 and randf() > (1.0 - float(_alive_count) / float(MAX_AGENTS)):
 		return
 	var angle: float = randf() * TAU
 	var child_genome: Dictionary = _mutate_genome_inline(i)

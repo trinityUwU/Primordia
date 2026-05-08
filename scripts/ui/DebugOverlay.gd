@@ -5,6 +5,7 @@ extends Control
 var _camera: Camera2D
 var _zoom_level: int = 0
 var _render_fps_samples: Array[float] = []
+var _label_frame: int = 0
 
 # Per-second metrics (sampled every second of sim time)
 var _last_sample_sim_time: float = 0.0
@@ -43,14 +44,17 @@ func _process(delta: float) -> void:
 	_render_fps_samples.append(1.0 / delta if delta > 0.0 else 0.0)
 	if _render_fps_samples.size() > 30:
 		_render_fps_samples.pop_front()
-	_update_label()
+	_label_frame += 1
+	if _label_frame >= 6:
+		_label_frame = 0
+		_update_label()
 
 
 func _update_label() -> void:
 	var render_fps: float = _avg_fps()
 	var tick_rate_real: float = SimulationClock.get_sim_fps()
 	var mouse_grid: Vector2i = _get_mouse_grid_coords()
-	var counts: Dictionary = _count_by_type()
+	var counts: PackedInt32Array = AgentPool._type_counts
 	var heatmap_node: Node = get_tree().get_first_node_in_group("heatmap_overlay")
 	var heatmap_str: String = ""
 	if heatmap_node:
@@ -77,11 +81,11 @@ func _update_label() -> void:
 		+ "Zoom: %d  Grid: %d,%d%s"
 	) % [
 		int(render_fps), tick_rate_real,
-		counts.get(AgentPool.TYPE_BACTERIUM, 0),
-		counts.get(AgentPool.TYPE_VIRUS, 0),
-		counts.get(AgentPool.TYPE_PROTOZOA, 0),
-		counts.get(AgentPool.TYPE_PLANT, 0),
-		counts.get(AgentPool.TYPE_FUNGI, 0),
+		counts[AgentPool.TYPE_BACTERIUM],
+		counts[AgentPool.TYPE_VIRUS],
+		counts[AgentPool.TYPE_PROTOZOA],
+		counts[AgentPool.TYPE_PLANT],
+		counts[AgentPool.TYPE_FUNGI],
 		AgentPool._alive_count,
 		PopulationLOD.get_total_aggregate_population(),
 		_births_per_sec, _deaths_per_sec,
@@ -93,15 +97,6 @@ func _update_label() -> void:
 		heatmap_str,
 	]
 
-
-func _count_by_type() -> Dictionary:
-	var counts: Dictionary = {}
-	for i in AgentPool.count:
-		if AgentPool.flags[i] & AgentPool.FLAG_ALIVE == 0:
-			continue
-		var t: int = AgentPool.agent_type[i]
-		counts[t] = counts.get(t, 0) + 1
-	return counts
 
 
 func _avg_fps() -> float:

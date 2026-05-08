@@ -3,8 +3,8 @@ extends Node
 const ACTIVE_RADIUS: float = 800.0
 const SPAWN_RADIUS: float = 1000.0
 const MAX_AGENTS: int = 10000
-const SEED_TARGET: int = 200       # agents to seed at startup
-const SPAWN_PER_TICK: int = 5
+const SEED_TARGET: int = 50        # agents to seed at startup
+const SPAWN_PER_TICK: int = 2
 const SPAWN_EVERY_N_TICKS: int = 30  # slow trickle for immigration only
 const MIN_NUTRIENTS_TO_SPAWN: float = 0.05
 

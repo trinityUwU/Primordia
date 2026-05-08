@@ -16,6 +16,7 @@ var _mmi: MultiMeshInstance2D
 var _shader_material: ShaderMaterial
 var _tooltip: Label
 var _cluster_tooltip: Dictionary = {}
+var _current_cell_size: float = CLUSTER_CELL_PX
 
 
 func _ready() -> void:
@@ -64,7 +65,15 @@ func _process(_delta: float) -> void:
 		return
 	var cull_rect: Rect2 = _get_cull_rect(camera)
 	_cluster_tooltip.clear()
-	var visible_count: int = _fill_instances(cull_rect, camera)
+	var alive: int = AgentPool._alive_count
+	var zoom: float = camera.zoom.x
+	var dynamic_cell: float = CLUSTER_CELL_PX
+	if alive > 5000:
+		dynamic_cell = CLUSTER_CELL_PX * (1.0 + float(alive - 5000) / 5000.0)
+	dynamic_cell = dynamic_cell / zoom
+	dynamic_cell = clampf(dynamic_cell, CLUSTER_CELL_PX, 256.0)
+	_current_cell_size = dynamic_cell
+	var visible_count: int = _fill_instances(cull_rect, camera, dynamic_cell)
 	_multimesh.visible_instance_count = visible_count
 
 
@@ -79,18 +88,17 @@ func _world_to_screen(world_pos: Vector2, camera: Camera2D) -> Vector2:
 	return (world_pos - camera.global_position) * camera.zoom + vp_size * 0.5
 
 
-func _build_clusters(cull_rect: Rect2, camera: Camera2D) -> Dictionary:
+func _build_clusters(cull_rect: Rect2, camera: Camera2D, cell_size: float) -> Dictionary:
 	var cells: Dictionary = {}
 	for i in AgentPool.count:
-		var f: int = AgentPool.flags[i]
 		var px: float = AgentPool.pos_x[i]
 		var py: float = AgentPool.pos_y[i]
 		if not cull_rect.has_point(Vector2(px, py)):
 			continue
 		var screen_pos: Vector2 = _world_to_screen(Vector2(px, py), camera)
 		var cell: Vector2i = Vector2i(
-			int(screen_pos.x / CLUSTER_CELL_PX),
-			int(screen_pos.y / CLUSTER_CELL_PX)
+			int(screen_pos.x / cell_size),
+			int(screen_pos.y / cell_size)
 		)
 		if not cells.has(cell):
 			cells[cell] = []
@@ -98,8 +106,8 @@ func _build_clusters(cull_rect: Rect2, camera: Camera2D) -> Dictionary:
 	return cells
 
 
-func _fill_instances(cull_rect: Rect2, camera: Camera2D) -> int:
-	var cells: Dictionary = _build_clusters(cull_rect, camera)
+func _fill_instances(cull_rect: Rect2, camera: Camera2D, cell_size: float) -> int:
+	var cells: Dictionary = _build_clusters(cull_rect, camera, cell_size)
 	var slot: int = 0
 	for cell in cells:
 		var indices: Array = cells[cell]
@@ -166,8 +174,8 @@ func _input(event: InputEvent) -> void:
 		return
 	var mouse_pos: Vector2 = (event as InputEventMouseMotion).position
 	var cell: Vector2i = Vector2i(
-		int(mouse_pos.x / CLUSTER_CELL_PX),
-		int(mouse_pos.y / CLUSTER_CELL_PX)
+		int(mouse_pos.x / _current_cell_size),
+		int(mouse_pos.y / _current_cell_size)
 	)
 	if _cluster_tooltip.has(cell):
 		_show_tooltip(mouse_pos, _cluster_tooltip[cell])

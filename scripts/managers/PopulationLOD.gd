@@ -83,6 +83,8 @@ func _aggregate_chunk(chunk_coord: Vector2i) -> void:
 	for i in to_kill:
 		AgentPool.flags[i] &= ~AgentPool.FLAG_ALIVE
 		AgentPool._alive_count -= 1
+		if AgentPool.agent_type[i] < AgentPool._type_counts.size():
+			AgentPool._type_counts[AgentPool.agent_type[i]] -= 1
 		AgentPool.dead_timer[i] = 0  # no decay, just free the slot
 
 	# Store counts (merge with existing)
