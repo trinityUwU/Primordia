@@ -165,16 +165,16 @@ func spawn_protozoa(px: float, py: float) -> int:
 	pos_y[i]             = py
 	dir_x[i]             = cos(angle)
 	dir_y[i]             = sin(angle)
-	energy[i]            = 1.5
+	energy[i]            = 3.0
 	speed[i]             = 50.0
 	size_arr[i]          = 2.5
-	metabolism[i]        = 0.01
-	division_threshold[i]= 3.0
+	metabolism[i]        = 0.003
+	division_threshold[i]= 5.0
 	mutation_rate[i]     = 0.01
 	resistance[i]        = 0.8
 	virulence[i]         = 0.9
 	age[i]               = 0
-	max_age[i]           = 5000
+	max_age[i]           = 8000
 	agent_type[i]        = TYPE_PROTOZOA
 	flags[i]             = FLAG_ALIVE
 	dead_timer[i]        = 0
@@ -182,7 +182,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	spore_timer[i]       = 0
 	brain_state[i]       = STATE_IDLE
 	target_i[i]          = -1
-	sense_radius[i]      = 120.0
+	sense_radius[i]      = 200.0
 	if i == count:
 		count += 1
 	_alive_count += 1
