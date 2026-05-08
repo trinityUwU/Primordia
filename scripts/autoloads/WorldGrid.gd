@@ -59,8 +59,8 @@ var _chunks: Dictionary = {}            # Vector2i → { fields: {key: Array}, l
 var _active_chunks: Array[Vector2i] = []
 var _biome_map: Dictionary = {}         # Vector2i → int — persistent, never evicted
 
-const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "toxins", "temperature"]
-const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.003, 0.06]
+const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "temperature"]
+const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.06]
 const _DIFFUSE_INTERVAL: float = 0.1
 
 var _diffuse_accumulator: float = 0.0
@@ -271,4 +271,4 @@ func _regenerate_fields() -> void:
 		var tox_arr: Array = fields["toxins"]
 		for i in tox_arr.size():
 			if tox_arr[i] > 0.0:
-				tox_arr[i] = maxf(tox_arr[i] - 0.001, 0.0)
+				tox_arr[i] = maxf(tox_arr[i] - 0.0002, 0.0)

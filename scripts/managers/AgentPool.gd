@@ -530,7 +530,7 @@ func _consume_nutrients(i: int) -> void:
 
 	# Toxin production (metabolic waste)
 	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
-	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + uptake * 0.8, 1.0))
+	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + 0.05, 1.0))
 	energy[i] = minf(energy[i] + uptake * 2.0, 2.0)
 
 
