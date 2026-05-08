@@ -4,6 +4,8 @@ const MAX_AGENTS: int = 3000
 const TYPE_BACTERIUM: int = 0
 const TYPE_VIRUS: int = 1
 const TYPE_PROTOZOA: int = 2
+const TYPE_PLANT: int = 3
+const TYPE_FUNGI: int = 4
 
 # FSM states
 const STATE_IDLE: int = 0
@@ -187,6 +189,70 @@ func spawn_protozoa(px: float, py: float) -> int:
 	return i
 
 
+func spawn_plant(px: float, py: float) -> int:
+	var i: int = _find_free_slot()
+	if i < 0:
+		return -1
+	pos_x[i]             = px
+	pos_y[i]             = py
+	dir_x[i]             = 0.0
+	dir_y[i]             = 0.0
+	energy[i]            = 1.0
+	speed[i]             = 0.0
+	size_arr[i]          = 3.0
+	metabolism[i]        = 0.005
+	division_threshold[i]= 2.0
+	mutation_rate[i]     = 0.005
+	resistance[i]        = 0.3
+	virulence[i]         = 0.0
+	age[i]               = 0
+	max_age[i]           = 8000
+	agent_type[i]        = TYPE_PLANT
+	flags[i]             = FLAG_ALIVE
+	dead_timer[i]        = 0
+	run_timer[i]         = randi_range(50, 150)
+	spore_timer[i]       = 0
+	brain_state[i]       = STATE_IDLE
+	target_i[i]          = -1
+	sense_radius[i]      = 0.0
+	if i == count:
+		count += 1
+	_alive_count += 1
+	return i
+
+
+func spawn_fungi(px: float, py: float) -> int:
+	var i: int = _find_free_slot()
+	if i < 0:
+		return -1
+	pos_x[i]             = px
+	pos_y[i]             = py
+	dir_x[i]             = 0.0
+	dir_y[i]             = 0.0
+	energy[i]            = 0.8
+	speed[i]             = 0.0
+	size_arr[i]          = 2.0
+	metabolism[i]        = 0.003
+	division_threshold[i]= 1.8
+	mutation_rate[i]     = 0.008
+	resistance[i]        = 0.5
+	virulence[i]         = 0.2
+	age[i]               = 0
+	max_age[i]           = 6000
+	agent_type[i]        = TYPE_FUNGI
+	flags[i]             = FLAG_ALIVE
+	dead_timer[i]        = 0
+	run_timer[i]         = randi_range(80, 200)
+	spore_timer[i]       = 0
+	brain_state[i]       = STATE_IDLE
+	target_i[i]          = -1
+	sense_radius[i]      = 80.0
+	if i == count:
+		count += 1
+	_alive_count += 1
+	return i
+
+
 func kill(i: int) -> void:
 	if flags[i] & FLAG_ALIVE == 0:
 		return
@@ -263,6 +329,10 @@ func _process_agents(tick: int) -> void:
 				_tick_bacterium(i)
 			elif agent_type[i] == TYPE_PROTOZOA:
 				_tick_protozoa(i)
+			elif agent_type[i] == TYPE_PLANT:
+				_tick_plant(i)
+			elif agent_type[i] == TYPE_FUNGI:
+				_tick_fungi(i)
 			else:
 				_tick_virus(i)
 		i += TICK_STRIDE
@@ -522,6 +592,102 @@ func _protozoa_reproduce(i: int) -> void:
 		energy[ci] = division_threshold[i] * 0.4
 		energy[i] -= division_threshold[i] * 0.5
 	brain_state[i] = STATE_IDLE
+
+
+func _tick_plant(i: int) -> void:
+	age[i] += 1
+	if age[i] > max_age[i]:
+		kill(i)
+		return
+	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
+	# Photosynthesis: consume light + water, produce nutrients + oxygen
+	var light: float = WorldGrid.get_cell_value(gx, gy, "light")
+	var water: float = WorldGrid.get_cell_value(gx, gy, "water")
+	if light > 0.3 and water > 0.2:
+		var produced: float = light * 0.04
+		energy[i] = minf(energy[i] + produced * 0.5, division_threshold[i] * 1.5)
+		WorldGrid.set_cell_value(gx, gy, "nutrients",
+			minf(WorldGrid.get_cell_value(gx, gy, "nutrients") + produced * 0.3, 1.0))
+		WorldGrid.set_cell_value(gx, gy, "oxygen",
+			minf(WorldGrid.get_cell_value(gx, gy, "oxygen") + produced * 0.2, 0.4))
+		WorldGrid.set_cell_value(gx, gy, "water",
+			maxf(water - produced * 0.1, 0.0))
+	else:
+		energy[i] -= metabolism[i]
+		if energy[i] <= 0.0:
+			kill(i)
+			return
+	# Spread: create a new plant nearby every run_timer ticks
+	run_timer[i] -= 1
+	if run_timer[i] <= 0:
+		run_timer[i] = randi_range(100, 300)
+		if energy[i] >= division_threshold[i] and _alive_count < MAX_AGENTS:
+			var angle: float = randf() * TAU
+			var dist: float = randf_range(16.0, 48.0)
+			var ci: int = spawn_plant(
+				pos_x[i] + cos(angle) * dist,
+				pos_y[i] + sin(angle) * dist
+			)
+			if ci >= 0:
+				energy[i] -= division_threshold[i] * 0.4
+				energy[ci] = 0.5
+
+
+func _tick_fungi(i: int) -> void:
+	age[i] += 1
+	if age[i] > max_age[i]:
+		kill(i)
+		return
+	energy[i] -= metabolism[i]
+	if energy[i] <= 0.0:
+		kill(i)
+		return
+	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
+	# Decompose: consume dead organic matter (low nutrients = already consumed area,
+	# fungi work on cadavers nearby)
+	var local_nutrients: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
+	# Absorb nutrients from soil
+	var uptake: float = minf(0.02, local_nutrients * 0.3)
+	WorldGrid.set_cell_value(gx, gy, "nutrients", local_nutrients - uptake)
+	energy[i] = minf(energy[i] + uptake * 1.5, division_threshold[i] * 1.5)
+	# Decompose nearby dead agents — recycle their energy back to soil
+	run_timer[i] -= 1
+	if run_timer[i] <= 0:
+		run_timer[i] = randi_range(40, 100)
+		_fungi_decompose(i)
+	# Spread
+	if energy[i] >= division_threshold[i] and _alive_count < MAX_AGENTS:
+		var angle: float = randf() * TAU
+		var dist: float = randf_range(8.0, 32.0)
+		var ci: int = spawn_fungi(
+			pos_x[i] + cos(angle) * dist,
+			pos_y[i] + sin(angle) * dist
+		)
+		if ci >= 0:
+			energy[i] -= division_threshold[i] * 0.5
+			energy[ci] = 0.4
+
+
+func _fungi_decompose(i: int) -> void:
+	var r2: float = sense_radius[i] * sense_radius[i]
+	var px: float = pos_x[i]
+	var py: float = pos_y[i]
+	for j in count:
+		if flags[j] & FLAG_ALIVE:
+			continue
+		if dead_timer[j] <= 0:
+			continue
+		var dx: float = pos_x[j] - px
+		var dy: float = pos_y[j] - py
+		if dx * dx + dy * dy > r2:
+			continue
+		dead_timer[j] = maxi(dead_timer[j] - 10, 0)
+		var gx: int = int(pos_x[j] / WorldGrid.CELL_SIZE)
+		var gy: int = int(pos_y[j] / WorldGrid.CELL_SIZE)
+		var cur: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
+		WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur + 0.05, 1.0))
 
 
 func _find_prey(i: int) -> int:

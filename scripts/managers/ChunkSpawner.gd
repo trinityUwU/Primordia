@@ -13,6 +13,8 @@ var _last_valid_camera_pos: Vector2 = Vector2.ZERO
 var spawn_bacteria_enabled: bool = true
 var spawn_virus_enabled: bool = true
 var spawn_protozoa_enabled: bool = false
+var spawn_plant_enabled: bool = false
+var spawn_fungi_enabled: bool = false
 
 
 func _ready() -> void:
@@ -51,8 +53,13 @@ func _maybe_spawn() -> void:
 			continue
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		if spawn_protozoa_enabled and _can_spawn_protozoa_at(pos):
+		var roll: float = randf()
+		if spawn_protozoa_enabled and _can_spawn_protozoa_at(pos) and roll < 0.04:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
+		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and roll < 0.08:
+			AgentPool.spawn_plant(pos.x, pos.y)
+		elif spawn_fungi_enabled and _can_spawn_fungi_at(pos) and roll < 0.06:
+			AgentPool.spawn_fungi(pos.x, pos.y)
 		elif spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
 			AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
 		elif spawn_virus_enabled:
@@ -100,6 +107,29 @@ func _can_spawn_protozoa_at(pos: Vector2) -> bool:
 		if AgentPool.agent_type[i] == AgentPool.TYPE_BACTERIUM:
 			bacteria_count += 1
 	return bacteria_count >= 5
+
+
+func _can_spawn_plant_at(pos: Vector2) -> bool:
+	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+	if biome == WorldGrid.BIOME_ROCK or biome == WorldGrid.BIOME_WATER:
+		return false
+	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
+	return WorldGrid.get_cell_value(gx, gy, "light") > 0.5 and \
+		   WorldGrid.get_cell_value(gx, gy, "water") > 0.2
+
+
+func _can_spawn_fungi_at(pos: Vector2) -> bool:
+	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+	# Fungi thrive in wood/earth, need moisture and organic matter
+	if biome != WorldGrid.BIOME_WOOD and biome != WorldGrid.BIOME_EARTH:
+		return false
+	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
+	return WorldGrid.get_cell_value(gx, gy, "water") > 0.3 and \
+		   WorldGrid.get_cell_value(gx, gy, "nutrients") > 0.2
 
 
 func _genome_for_biome(biome: int) -> Dictionary:

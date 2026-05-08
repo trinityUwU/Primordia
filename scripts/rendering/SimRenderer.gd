@@ -6,6 +6,8 @@ const CUSTOM_SPORE: float = 2.0
 const CUSTOM_VIRUS: float = 3.0
 const CUSTOM_DEAD: float = 4.0
 const CUSTOM_PROTOZOA: float = 5.0
+const CUSTOM_PLANT: float = 6.0
+const CUSTOM_FUNGI: float = 7.0
 const CLUSTER_CELL_PX: float = 24.0
 const CLUSTER_THRESHOLD: int = 3
 
@@ -182,8 +184,14 @@ func _show_tooltip(mouse_pos: Vector2, data: Dictionary) -> void:
 			name_str = "Bacterium"
 		elif t == AgentPool.TYPE_VIRUS:
 			name_str = "Virus"
-		else:
+		elif t == AgentPool.TYPE_PROTOZOA:
 			name_str = "Protozoa"
+		elif t == AgentPool.TYPE_PLANT:
+			name_str = "Plant"
+		elif t == AgentPool.TYPE_FUNGI:
+			name_str = "Fungi"
+		else:
+			name_str = "Unknown"
 		parts.append("%s x%d" % [name_str, type_counts[t]])
 	_tooltip.text = " | ".join(parts)
 	_tooltip.position = mouse_pos + Vector2(10.0, -20.0)
@@ -205,6 +213,10 @@ func _build_custom(i: int, f: int) -> Color:
 		return Color(CUSTOM_VIRUS, 0.0, 0.0, 0.0)
 	if AgentPool.agent_type[i] == AgentPool.TYPE_PROTOZOA:
 		return Color(CUSTOM_PROTOZOA, 0.0, 0.0, 0.0)
+	if AgentPool.agent_type[i] == AgentPool.TYPE_PLANT:
+		return Color(CUSTOM_PLANT, 0.0, 0.0, 0.0)
+	if AgentPool.agent_type[i] == AgentPool.TYPE_FUNGI:
+		return Color(CUSTOM_FUNGI, 0.0, 0.0, 0.0)
 	if f & AgentPool.FLAG_SPORE:
 		return Color(CUSTOM_SPORE, 0.0, 0.0, 0.0)
 	if f & AgentPool.FLAG_GRAM_POS:

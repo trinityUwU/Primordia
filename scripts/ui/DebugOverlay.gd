@@ -36,12 +36,14 @@ func _update_label() -> void:
 		if m != 0:
 			heatmap_str = "\nHeatmap: " + lbl[m]
 	_label.text = (
-		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nProtozoa: %d\nTotal: %d\nZoom: %d\nGrid: %d,%d%s" % [
+		"FPS: %d\nTick rate: %.1f/s\nBacteria: %d\nVirus: %d\nProtozoa: %d\nPlants: %d\nFungi: %d\nTotal: %d\nZoom: %d\nGrid: %d,%d%s" % [
 			int(render_fps),
 			tick_rate_real,
 			counts.get(AgentPool.TYPE_BACTERIUM, 0),
 			counts.get(AgentPool.TYPE_VIRUS, 0),
 			counts.get(AgentPool.TYPE_PROTOZOA, 0),
+			counts.get(AgentPool.TYPE_PLANT, 0),
+			counts.get(AgentPool.TYPE_FUNGI, 0),
 			AgentPool._alive_count,
 			_zoom_level,
 			mouse_grid.x,
