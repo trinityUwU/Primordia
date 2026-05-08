@@ -3,10 +3,10 @@ extends Node
 const ACTIVE_RADIUS: float = 800.0
 const SPAWN_RADIUS: float = 1000.0
 const MAX_AGENTS: int = 2000
-const MAX_DENSITY_PER_CHUNK: float = 2.0
+const MAX_DENSITY_PER_CHUNK: float = 8.0
 const SPAWN_PER_TICK: int = 3
 const SPAWN_EVERY_N_TICKS: int = 10
-const MIN_NUTRIENTS_TO_SPAWN: float = 0.1
+const MIN_NUTRIENTS_TO_SPAWN: float = 0.05
 
 var _camera_world_pos: Vector2 = Vector2.ZERO
 var _last_valid_camera_pos: Vector2 = Vector2.ZERO
@@ -46,19 +46,19 @@ func _maybe_spawn() -> void:
 	var to_spawn: int = mini(SPAWN_PER_TICK, MAX_AGENTS - AgentPool._alive_count)
 	var spawned: int = 0
 	var attempts: int = 0
-	while spawned < to_spawn and attempts < to_spawn * 4:
+	while spawned < to_spawn and attempts < to_spawn * 8:
 		attempts += 1
 		var pos: Vector2 = _random_spawn_pos()
 		if not _can_spawn_at(pos):
 			continue
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		var roll: float = randf()
-		if spawn_protozoa_enabled and roll < 0.15:
+		# Each special type rolls independently, bacteria is fallback
+		if spawn_protozoa_enabled and randf() < 0.12:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
-		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and roll < 0.08:
+		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and randf() < 0.20:
 			AgentPool.spawn_plant(pos.x, pos.y)
-		elif spawn_fungi_enabled and _can_spawn_fungi_at(pos) and roll < 0.06:
+		elif spawn_fungi_enabled and _can_spawn_fungi_at(pos) and randf() < 0.15:
 			AgentPool.spawn_fungi(pos.x, pos.y)
 		elif spawn_bacteria_enabled and (not spawn_virus_enabled or randf() < 0.85):
 			AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
@@ -77,25 +77,11 @@ func _can_spawn_at(pos: Vector2) -> bool:
 		return false
 	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-	# No spawn in rock (too hostile), very rare in water
 	if biome == WorldGrid.BIOME_ROCK:
 		return false
 	if biome == WorldGrid.BIOME_WATER and randf() > 0.4:
 		return false
-	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(
-		pos.x, pos.y, WorldGrid.CHUNK_WORLD_SIZE
-	)
-	return nearby.size() < int(MAX_DENSITY_PER_CHUNK)
-
-
-func _can_spawn_protozoa_at(pos: Vector2) -> bool:
-	# Need at least 3 bacteria nearby to justify a predator
-	var nearby: PackedInt32Array = AgentPool.get_agents_in_radius(pos.x, pos.y, 300.0)
-	var bacteria_count: int = 0
-	for i in nearby:
-		if AgentPool.agent_type[i] == AgentPool.TYPE_BACTERIUM:
-			bacteria_count += 1
-	return bacteria_count >= 3
+	return true
 
 
 func _can_spawn_plant_at(pos: Vector2) -> bool:
@@ -105,20 +91,17 @@ func _can_spawn_plant_at(pos: Vector2) -> bool:
 		return false
 	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
-	return WorldGrid.get_cell_value(gx, gy, "light") > 0.5 and \
-		   WorldGrid.get_cell_value(gx, gy, "water") > 0.2
+	return WorldGrid.get_cell_value(gx, gy, "light") > 0.3
 
 
 func _can_spawn_fungi_at(pos: Vector2) -> bool:
 	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-	# Fungi thrive in wood/earth, need moisture and organic matter
-	if biome != WorldGrid.BIOME_WOOD and biome != WorldGrid.BIOME_EARTH:
+	if biome == WorldGrid.BIOME_ROCK or biome == WorldGrid.BIOME_WATER:
 		return false
 	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
-	return WorldGrid.get_cell_value(gx, gy, "water") > 0.3 and \
-		   WorldGrid.get_cell_value(gx, gy, "nutrients") > 0.2
+	return WorldGrid.get_cell_value(gx, gy, "nutrients") > 0.1
 
 
 func _genome_for_biome(biome: int) -> Dictionary:
@@ -129,9 +112,7 @@ func _genome_for_biome(biome: int) -> Dictionary:
 			return { "gram_positive": true, "metabolism": 0.025, "move_speed": 35.0 }
 		WorldGrid.BIOME_WOOD:
 			return { "gram_positive": true, "metabolism": 0.018, "division_threshold": 0.9 }
-		WorldGrid.BIOME_ROCK:
-			return {}  # never reached, filtered above
-		_:  # EARTH default
+		_:
 			return {}
 
 
