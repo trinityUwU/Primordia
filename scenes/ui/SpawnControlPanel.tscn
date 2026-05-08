@@ -4,20 +4,17 @@
 
 [node name="SpawnControlPanel" type="Control"]
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 1
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_left = -200.0
+offset_bottom = 120.0
+mouse_filter = 2
 script = ExtResource("1_scp")
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = -200.0
-offset_bottom = 120.0
+anchors_preset = 0
 grow_horizontal = 0
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
