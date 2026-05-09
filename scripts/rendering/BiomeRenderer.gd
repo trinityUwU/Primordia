@@ -34,6 +34,7 @@ func _ready() -> void:
 	_rect = ColorRect.new()
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_rect.material = _mat
 	_canvas.add_child(_rect)
 

@@ -1,6 +1,6 @@
 shader_type canvas_item;
 
-uniform sampler2D biome_tex : filter_nearest, repeat_edge;
+uniform sampler2D biome_tex;
 uniform float chunk_px;
 uniform vec2  cam_pos;
 uniform float zoom;
