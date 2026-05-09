@@ -41,19 +41,19 @@ void fragment() {
 	// Continuous chunk position
 	vec2 chunk_f = world_pos / chunk_px;
 
-	// Pixel in the biome texture
-	vec2 tex_uv = (chunk_f - tex_origin) / tex_size;
-
 	// Local position within the chunk [0,1)
-	// Use floor to avoid negative-coord artifacts
 	vec2 local = chunk_f - floor(chunk_f);
 
-	vec2 step_uv = vec2(1.0 / tex_size);
-	float b_self  = texture(biome_tex, tex_uv).r;
-	float b_north = texture(biome_tex, tex_uv + vec2(0.0,        -step_uv.y)).r;
-	float b_south = texture(biome_tex, tex_uv + vec2(0.0,         step_uv.y)).r;
-	float b_west  = texture(biome_tex, tex_uv + vec2(-step_uv.x,  0.0      )).r;
-	float b_east  = texture(biome_tex, tex_uv + vec2( step_uv.x,  0.0      )).r;
+	// Snap to pixel center — avoids linear bleeding regardless of filter mode
+	vec2 pixel_idx = floor(chunk_f - tex_origin);
+	float s = 1.0 / tex_size;
+	vec2 tc = (pixel_idx + 0.5) * s;  // center of the pixel
+
+	float b_self  = texture(biome_tex, tc).r;
+	float b_north = texture(biome_tex, tc + vec2(0.0,  -s)).r;
+	float b_south = texture(biome_tex, tc + vec2(0.0,   s)).r;
+	float b_west  = texture(biome_tex, tc + vec2( -s, 0.0)).r;
+	float b_east  = texture(biome_tex, tc + vec2(  s, 0.0)).r;
 
 	float n1 = noise(world_pos / 48.0) * 0.06;
 	float n2 = noise(world_pos / 12.0) * 0.03;
