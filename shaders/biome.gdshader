@@ -1,16 +1,12 @@
 shader_type canvas_item;
 
-varying flat float v_biome;
-varying flat float v_north;
-varying flat float v_east;
-varying vec2 v_world_pos;
-
-void vertex() {
-	v_biome     = INSTANCE_CUSTOM.r;
-	v_north     = INSTANCE_CUSTOM.g;
-	v_east      = INSTANCE_CUSTOM.b;
-	v_world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
-}
+uniform sampler2D biome_tex : filter_nearest, repeat_edge;
+uniform float chunk_px;
+uniform vec2  cam_pos;
+uniform float zoom;
+uniform vec2  vp_size;
+uniform float tex_size;
+uniform vec2  tex_origin;  // chunk coord that maps to pixel (0,0)
 
 float hash(vec2 p) {
 	p = fract(p * vec2(127.1, 311.7));
@@ -29,7 +25,8 @@ float noise(vec2 p) {
 	);
 }
 
-vec3 biome_color(int b) {
+vec3 biome_color(float b_norm) {
+	int b = int(round(b_norm * 4.0));
 	if (b == 0) return vec3(0.08, 0.18, 0.38); // WATER
 	if (b == 1) return vec3(0.32, 0.22, 0.14); // EARTH
 	if (b == 2) return vec3(0.22, 0.42, 0.18); // GRASS
@@ -38,31 +35,55 @@ vec3 biome_color(int b) {
 }
 
 void fragment() {
-	int biome = int(round(v_biome * 4.0));
-	int north  = int(round(v_north * 4.0));
-	int east   = int(round(v_east  * 4.0));
+	// Reconstruct world position from screen UV
+	vec2 screen_pos = UV * vp_size;
+	vec2 world_pos = cam_pos + (screen_pos - vp_size * 0.5) / zoom;
 
-	vec2 wp = v_world_pos;
-	float n1 = noise(wp / 48.0) * 0.06;
-	float n2 = noise(wp / 12.0) * 0.03;
-	float n3 = noise(wp / 4.0)  * 0.015;
+	// Chunk coordinate (float, continuous)
+	vec2 chunk_f = world_pos / chunk_px;
+
+	// Texture UV: map chunk coord to texture pixel
+	vec2 tex_uv = (chunk_f - tex_origin) / tex_size;
+
+	// Position within the chunk (0-1)
+	vec2 local = fract(chunk_f);
+	// Fix: fract can be negative for negative coords
+	local = mod(chunk_f, 1.0);
+	if (local.x < 0.0) local.x += 1.0;
+	if (local.y < 0.0) local.y += 1.0;
+
+	// Sample own biome and 4 neighbours
+	vec2 step_uv = vec2(1.0 / tex_size);
+	float b_self  = texture(biome_tex, tex_uv).r;
+	float b_north = texture(biome_tex, tex_uv + vec2(0.0, -step_uv.y)).r;
+	float b_south = texture(biome_tex, tex_uv + vec2(0.0,  step_uv.y)).r;
+	float b_west  = texture(biome_tex, tex_uv + vec2(-step_uv.x, 0.0)).r;
+	float b_east  = texture(biome_tex, tex_uv + vec2( step_uv.x, 0.0)).r;
+
+	// World-space noise for variation + organic edge displacement
+	float n1 = noise(world_pos / 48.0) * 0.06;
+	float n2 = noise(world_pos / 12.0) * 0.03;
+	float n3 = noise(world_pos / 4.0)  * 0.015;
 	float nv = n1 + n2 + n3 - 0.05;
 
-	vec3 col = clamp(biome_color(biome) + nv, 0.0, 1.0);
+	float disp = noise(world_pos / 22.0) * 0.09 - 0.045;
+	const float BW = 0.15;
 
-	// Organic displacement along edges
-	float disp = noise(wp / 22.0) * 0.09 - 0.045;
-	const float BW = 0.15; // blend width in UV space
+	vec3 col = clamp(biome_color(b_self) + nv, 0.0, 1.0);
 
-	// North edge blend (top of this chunk → matches south edge of northern neighbour)
-	float t_n = clamp((BW - UV.y + disp) / BW, 0.0, 1.0);
-	if (north != biome && t_n > 0.0)
-		col = mix(col, clamp(biome_color(north) + nv, 0.0, 1.0), t_n);
+	float t_n = clamp((BW - local.y + disp) / BW, 0.0, 1.0);
+	float t_s = clamp((local.y - (1.0 - BW) + disp) / BW, 0.0, 1.0);
+	float t_w = clamp((BW - local.x + disp) / BW, 0.0, 1.0);
+	float t_e = clamp((local.x - (1.0 - BW) + disp) / BW, 0.0, 1.0);
 
-	// East edge blend (right side → matches west edge of eastern neighbour)
-	float t_e = clamp((UV.x - (1.0 - BW) + disp) / BW, 0.0, 1.0);
-	if (east != biome && t_e > 0.0)
-		col = mix(col, clamp(biome_color(east) + nv, 0.0, 1.0), t_e);
+	if (abs(b_north - b_self) > 0.01 && t_n > 0.0)
+		col = mix(col, clamp(biome_color(b_north) + nv, 0.0, 1.0), t_n);
+	if (abs(b_south - b_self) > 0.01 && t_s > 0.0)
+		col = mix(col, clamp(biome_color(b_south) + nv, 0.0, 1.0), t_s);
+	if (abs(b_west - b_self) > 0.01 && t_w > 0.0)
+		col = mix(col, clamp(biome_color(b_west) + nv, 0.0, 1.0), t_w);
+	if (abs(b_east - b_self) > 0.01 && t_e > 0.0)
+		col = mix(col, clamp(biome_color(b_east) + nv, 0.0, 1.0), t_e);
 
 	COLOR = vec4(col, 1.0);
 }

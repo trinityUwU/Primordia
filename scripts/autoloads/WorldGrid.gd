@@ -1,5 +1,7 @@
 extends Node
 
+signal biome_changed(chunk_coord: Vector2i)
+
 const CHUNK_SIZE: int = 32
 const CELL_SIZE: float = 8.0
 const CHUNK_WORLD_SIZE: float = CHUNK_SIZE * CELL_SIZE  # 256px
@@ -122,6 +124,7 @@ func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
 	for key in FIELD_KEYS:
 		chunk["fields"][key].fill(defaults[key])
 		chunk["_buf"][key].fill(0.0)
+	biome_changed.emit(chunk_coord)
 
 
 func get_chunk_biome(chunk_coord: Vector2i) -> int:
