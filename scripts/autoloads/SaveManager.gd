@@ -66,6 +66,7 @@ func new_save(name: String) -> String:
 		"last_saved": _iso_now(),
 		"playtime": 0,
 		"autosave_interval": interval,
+		"emergence_mode": false,
 	}
 	_write_json(SAVES_DIR + slot_id + "/meta.json", meta)
 	return slot_id
@@ -85,6 +86,10 @@ func load_save(slot_id: String) -> bool:
 	_last_save_time = _session_start_time
 	var interval: int = meta.get("autosave_interval", DEFAULT_AUTOSAVE_INTERVAL)
 	_start_autosave_timer(interval)
+	var emergence: bool = bool(meta.get("emergence_mode", false))
+	var spawner: Node = _get_chunk_spawner()
+	if spawner != null:
+		spawner.emergence_mode = emergence
 	load_completed.emit(slot_id)
 	return true
 
@@ -96,6 +101,9 @@ func save_current(slot_id: String) -> void:
 		return
 	meta["last_saved"] = _iso_now()
 	meta["playtime"] = _compute_total_playtime()
+	var spawner: Node = _get_chunk_spawner()
+	if spawner != null:
+		meta["emergence_mode"] = spawner.emergence_mode
 	_write_json(SAVES_DIR + slot_id + "/meta.json", meta)
 	var world_data: Dictionary = { "biome_map": _serialize_biome_map() }
 	_write_json(SAVES_DIR + slot_id + "/world.json", world_data)
@@ -227,6 +235,13 @@ func _load_settings() -> void:
 
 func _generate_slot_id() -> String:
 	return "save_%d" % int(Time.get_unix_time_from_system())
+
+
+func _get_chunk_spawner() -> Node:
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return null
+	return tree.get_first_node_in_group("chunk_spawner")
 
 
 func _iso_now() -> String:

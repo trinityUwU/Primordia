@@ -79,6 +79,10 @@
 - [x] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
 - [x] Équilibre division/mort : uptake 0.018, toxins progressifs 0.4→, O2 seuil rehaussé
 - [x] Nutrient cycle fermé : plantes dégradent toxines, bactéries saturent zone → mort naturelle
+- [~] Stabilisation O2/CO2 — buffer atmosphérique + pas de write O2 par agents
+- [ ] Mode simulation réelle : spawn conditionnel (O2, nutrients, eau, température)
+- [ ] Option settings "Seeded start" vs "Natural emergence" — désactiver spawn initial forcé
+- [ ] Vérification équilibre : O2 stable 0.19–0.23 au repos, pics bactériens Lotka-Volterra naturels
 
 ### Scale
 - [x] MAX_AGENTS dynamique (RAM-based) — calculé au démarrage, budget 4GB, ~20M max

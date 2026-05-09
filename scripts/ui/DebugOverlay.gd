@@ -56,8 +56,16 @@ func _update_label() -> void:
 	var c: PackedInt32Array = AgentPool._type_counts
 	var net: float = _births_per_sec - _deaths_per_sec
 	var net_s: String = ("+%.1f" % net) if net >= 0.0 else ("%.1f" % net)
-	var o2: float = _o2_produced_per_sec - _o2_consumed_per_sec
-	var o2_s: String = ("+%.3f" % o2) if o2 >= 0.0 else ("%.3f" % o2)
+	var o2_net: float = _o2_produced_per_sec - _o2_consumed_per_sec
+	var o2_s: String = ("+%.3f" % o2_net) if o2_net >= 0.0 else ("%.3f" % o2_net)
+	# Sample local O2 and CO2 at mouse position
+	var o2_local: float = 0.21
+	var co2_local: float = 0.04
+	if _camera != null:
+		var gx: int = int(grid.x)
+		var gy: int = int(grid.y)
+		o2_local = WorldGrid.get_cell_value(gx, gy, "oxygen")
+		co2_local = 1.0 - o2_local
 
 	_label.text = (
 		"%d fps  %.0f t/s\n"
@@ -68,6 +76,7 @@ func _update_label() -> void:
 		+ "Fungi %5d\n"
 		+ "Live  %5d  +%d virt\n"
 		+ "Net  %s/s   O2 %s/s\n"
+		+ "O2 %.2f  CO2 %.2f\n"
 		+ "%d,%d  z%d"
 	) % [
 		int(fps), tick_rate,
@@ -79,6 +88,7 @@ func _update_label() -> void:
 		AgentPool._alive_count,
 		PopulationLOD.get_total_aggregate_population(),
 		net_s, o2_s,
+		o2_local, co2_local,
 		grid.x, grid.y, _zoom_level,
 	]
 

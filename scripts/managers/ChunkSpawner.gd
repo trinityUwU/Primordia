@@ -15,15 +15,18 @@ var spawn_virus_enabled: bool = true
 var spawn_protozoa_enabled: bool = true
 var spawn_plant_enabled: bool = true
 var spawn_fungi_enabled: bool = true
+var emergence_mode: bool = false
 
 
 func _ready() -> void:
+	add_to_group("chunk_spawner")
 	SimulationClock.tick_processed.connect(_on_tick)
-	# Seed world on first frame after scene is ready
 	call_deferred("_seed_world")
 
 
 func _seed_world() -> void:
+	if emergence_mode:
+		return
 	_update_camera_pos()
 	WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_RADIUS)
 	var attempts: int = 0
@@ -37,7 +40,6 @@ func _seed_world() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
-	# Seed a few plants, fungi and protozoa
 	for _i in 4:
 		var pos: Vector2 = _random_spawn_pos()
 		AgentPool.spawn_protozoa(pos.x, pos.y)
@@ -56,7 +58,6 @@ func _on_tick(tick: int) -> void:
 	_update_camera_pos()
 	if tick % 30 == 0:
 		WorldGrid.update_active_chunks(_camera_world_pos, ACTIVE_RADIUS)
-	# Immigration trickle — only when population drops below threshold
 	if tick % SPAWN_EVERY_N_TICKS == 0 and AgentPool._alive_count < MAX_AGENTS / 4:
 		_maybe_spawn()
 
@@ -73,6 +74,9 @@ func _update_camera_pos() -> void:
 
 
 func _maybe_spawn() -> void:
+	if emergence_mode:
+		_maybe_spawn_emergence()
+		return
 	if AgentPool._alive_count >= AgentPool.SOFT_CAP:
 		return
 	var to_spawn: int = mini(SPAWN_PER_TICK, AgentPool.SOFT_CAP - AgentPool._alive_count)
@@ -85,7 +89,6 @@ func _maybe_spawn() -> void:
 			continue
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		# Each special type rolls independently, bacteria is fallback
 		if spawn_protozoa_enabled and randf() < 0.12 and AgentPool._type_counts[AgentPool.TYPE_BACTERIUM] > 200:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
 		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and randf() < 0.40:
@@ -99,6 +102,32 @@ func _maybe_spawn() -> void:
 		else:
 			continue
 		spawned += 1
+
+
+func _maybe_spawn_emergence() -> void:
+	if AgentPool._alive_count >= AgentPool.SOFT_CAP:
+		return
+	if randf() >= 0.002:
+		return
+	var pos: Vector2 = _random_spawn_pos()
+	var gx: int = int(pos.x / WorldGrid.CELL_SIZE)
+	var gy: int = int(pos.y / WorldGrid.CELL_SIZE)
+	var nutrients: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
+	var oxygen: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
+	var water: float = WorldGrid.get_cell_value(gx, gy, "water")
+	var temperature: float = WorldGrid.get_cell_value(gx, gy, "temperature")
+	if nutrients < 0.25 or oxygen < 0.18 or water < 0.20:
+		return
+	if temperature < 10.0 or temperature > 40.0:
+		return
+	var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
+	var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
+	if biome == WorldGrid.BIOME_ROCK:
+		return
+	if randf() < 0.6:
+		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
+	else:
+		AgentPool.spawn_fungi(pos.x, pos.y)
 
 
 func _can_spawn_at(pos: Vector2) -> bool:

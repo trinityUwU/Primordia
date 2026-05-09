@@ -171,8 +171,8 @@ func spawn_bacterium(px: float, py: float, genome: Dictionary = {}) -> int:
 	energy[i]            = genome.get("energy", 1.0)
 	speed[i]             = genome.get("move_speed", 30.0)
 	size_arr[i]          = genome.get("size", 1.0)
-	metabolism[i]        = genome.get("metabolism", 0.008)
-	division_threshold[i]= genome.get("division_threshold", 1.0)
+	metabolism[i]        = genome.get("metabolism", 0.010)
+	division_threshold[i]= genome.get("division_threshold", 1.2)
 	mutation_rate[i]     = genome.get("mutation_rate", 0.02)
 	resistance[i]        = genome.get("resistance", 0.5)
 	virulence[i]         = genome.get("virulence", 0.1)
@@ -246,7 +246,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	speed[i]             = 45.0
 	size_arr[i]          = 2.5
 	metabolism[i]        = 0.006  # higher — starves faster without prey, limits runaway growth
-	division_threshold[i]= 2.0   # needs more energy to reproduce → slower boom
+	division_threshold[i]= 2.5   # needs more energy to reproduce → slower boom
 	mutation_rate[i]     = 0.01
 	resistance[i]        = 0.8
 	virulence[i]         = 0.9
@@ -259,7 +259,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	spore_timer[i]       = 0
 	brain_state[i]       = STATE_IDLE
 	target_i[i]          = -1
-	sense_radius[i]      = 120.0  # reduced — harder to find prey, less pressure on bacteria
+	sense_radius[i]      = 90.0   # reduced — harder to find prey, less pressure on bacteria
 	if i == count:
 		count += 1
 	_alive_count += 1
@@ -362,9 +362,7 @@ func kill(i: int) -> void:
 	# Return nutrients to soil (decomposition)
 	var cur_n: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
 	WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur_n + energy[i] * 0.5, 1.0))
-	# Dead organic matter also slightly reduces O2 (decomposition consumes O2)
-	var cur_o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
-	WorldGrid.set_cell_value(gx, gy, "oxygen", maxf(cur_o2 - 0.01, 0.0))
+	# O2 not modified on death — managed at biome level by WorldGrid regen
 
 
 func is_alive(i: int) -> bool:
@@ -473,7 +471,8 @@ func _tick_bacterium(i: int) -> void:
 	if toxins > 0.4 and randf() < (toxins - 0.4) * 0.18:
 		kill(i)
 		return
-	if o2 < 0.08 and randf() < (0.08 - o2) * 2.0:
+	# Hypoxia: O2 critically low (below minimum viable = 0.10)
+	if o2 < 0.10 and randf() < (0.10 - o2) * 3.0:
 		kill(i)
 		return
 	_move_bacterium(i)
@@ -557,9 +556,9 @@ func _consume_nutrients(i: int) -> void:
 	var uptake: float = minf(0.018, available)
 	WorldGrid.set_cell_value(gx, gy, "nutrients", available - uptake)
 	# O2 consumption (aerobic respiration)
+	# O2 read-only for stress check — biome regen manages the balance
 	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
-	var o2_used: float = minf(uptake * 0.15, o2)
-	WorldGrid.set_cell_value(gx, gy, "oxygen", o2 - o2_used)
+	var o2_used: float = uptake * 0.25
 	_o2_consumed_tick += o2_used
 
 	# Toxin production — scales with uptake, creates density pressure

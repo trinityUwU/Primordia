@@ -34,8 +34,8 @@ const BIOME_REGEN_CAP: Dictionary = {
 const BIOME_CAPACITY: Dictionary = {
 	# max agents per chunk per type: [bacteria, virus, protozoa, plant, fungi]
 	0: [15, 5, 3, 1, 0],    # WATER
-	1: [25, 8, 4, 4, 3],    # EARTH
-	2: [40, 10, 6, 6, 4],   # GRASS — plant cap réduit pour éviter monopole
+	1: [20, 8, 4, 4, 3],    # EARTH
+	2: [30, 10, 6, 6, 4],   # GRASS — plant cap réduit pour éviter monopole
 	3: [35, 8, 5, 5, 8],    # WOOD — fungi dominant, plants limités
 	4: [3, 2, 1, 0, 0],     # ROCK
 }
@@ -285,6 +285,7 @@ func _regenerate_fields() -> void:
 		var regen: Dictionary = BIOME_REGEN.get(biome, BIOME_REGEN[BIOME_EARTH])
 		var caps: Dictionary = BIOME_REGEN_CAP.get(biome, BIOME_REGEN_CAP[BIOME_EARTH])
 		var fields: Dictionary = chunk["fields"]
+		var o2_field: Array = fields["oxygen"]
 		for key in ["nutrients", "water", "oxygen"]:
 			var rate: float = regen.get(key, 0.0)
 			if rate <= 0.0:
@@ -292,13 +293,17 @@ func _regenerate_fields() -> void:
 			var cap: float = caps.get(key, 1.0)
 			var arr: Array = fields[key]
 			for i in arr.size():
-				if arr[i] < cap:
-					arr[i] = minf(arr[i] + rate, cap)
-		# Atmospheric O2 buffer — always drift toward 0.21 baseline
+				if arr[i] >= cap:
+					continue
+				arr[i] = minf(arr[i] + rate, cap)
+		# Atmospheric buffer — strong pull toward baseline 0.21
+		# Models large-scale atmospheric O2 reservoir
 		var o2_arr: Array = fields["oxygen"]
 		for i in o2_arr.size():
-			if o2_arr[i] < 0.19:
-				o2_arr[i] = minf(o2_arr[i] + 0.005, 0.21)
+			if o2_arr[i] < 0.21:
+				o2_arr[i] = minf(o2_arr[i] + 0.02, 0.21)
+			elif o2_arr[i] > 0.50:
+				o2_arr[i] = maxf(o2_arr[i] - 0.01, 0.50)
 		# Toxins naturally degrade
 		var tox_arr: Array = fields["toxins"]
 		for i in tox_arr.size():

@@ -5,98 +5,103 @@
 
 ## Current State
 
-Phases 1, 2, 3b et 3c terminées et fonctionnelles. 5 types d'entités simulés (bactéries, virus, protozoaires, plantes, champignons), monde infini par chunks avec biomes différenciés, rendu MultiMesh GPU, LOD simulation + rendu densité fog.
+Phases 0→3c fonctionnelles. 5 types d'entités simulés. Menu principal + système de sauvegarde complets. Équilibre écologique en cours de stabilisation (O2/CO2, spawn conditionnel).
 
-**Dernier état testé** : écologie en cours de validation in-game (chaîne alimentaire, production O2 visible). MAX_AGENTS dynamique ~8000 SOFT_CAP sur budget 4GB RAM.
+**Dernier commit** : `342c36a` — équilibre écologique + eco_sim.py + menu/saves
+
+**En attente de test** : Natural Emergence Mode (spawn conditionnel), stabilité O2 avec nouveau buffer atmosphérique, PauseMenu toggle emergence.
 
 ---
 
 ## Active Features
 
+### Simulation
 - **SimulationClock** : tick loop 10Hz, pause/play, vitesses 0.1x→32x, MAX_TICKS_PER_FRAME=4
-- **WorldGrid** : monde infini par chunks 32×32 cellules (256×256px), 7 champs chimiques (nutrients/water/temperature/oxygen/ph/toxins/light), diffusion Fick wall-clock 0.1s
-  - `BIOME_DEFAULTS` : valeurs initiales réalistes par biome (nutrients, water, temp, O2, pH, toxins, light)
-  - `BIOME_REGEN` : taux et caps de régénération par biome (forêt régénère nutrients vite, roche stérile, etc.)
-  - Regen tourne sur TOUS les chunks, pas seulement actifs
-- **AgentPool** : data-oriented, PackedFloat32Array, zéro Node2D par agent, MAX dynamique RAM-based (~8000), TICK_STRIDE=2
-  - Bactéries : chimiotaxie run-and-tumble, division avec mutation génomique, sporulation, gram+/-
-  - Virus : mouvement brownien, propagation par contact, infection, lifetime
-  - Cadavres : 300 ticks de decay avec fade visuel
-  - Protozoaires : FSM IDLE→SEEK→HUNT→REPRODUCE, prédateurs bactéries, sense_radius 200px, metabolism 0.002, division_threshold 1.2 (2 kills)
-  - Plantes : photosynthèse (light+water→nutrients+O2), spread every 100-300 ticks, O2 production visible debug
-  - Champignons : décomposeurs, spread conditionné nutrients > 0.4 (proxy dead matter)
-- **ChunkSpawner** : spawn dans 800px autour caméra, filtre par biome (plantes light>0.15, champignons nutrients>0.1, pas de spawn sur roche)
-- **PopulationLOD** (autoload) : zone active = individus, hors zone = counts agrégés par chunk
-- **SimRenderer** : MultiMeshInstance2D (1 draw call GPU), culling O(viewport) via spatial hash AgentPool, `_rebuild_spatial` every 2 ticks, clustering 24px, tooltip hover
-- **DensityFogRenderer** : halos luminescents par chunk agrégé (1 quad/chunk), bloom shader, couleur par type dominant, intensité par densité
-- **Carrying capacity** : `WorldGrid.BIOME_CAPACITY` — max agents par type par chunk, scale dynamique selon nutrients. `_chunk_counts` tracker dans AgentPool pour tous spawns/divisions/reproductions
-- **WorldCamera** : WASD + flèches + scroll zoom + pan clic milieu, zoom adaptatif au viewport
-- **TimeControlBar** : pause/play/vitesse UI bas d'écran
-- **DebugOverlay** : FPS, tick rate, zoom, coords souris (F1), production O2 par chunk visible
-- **SpawnControlPanel** : toggle buttons par type (bacteria, virus, protozoa, plants, fungi)
-- **BiomeEditor** : outil peinture in-game, palette biomes, raccourci clavier
-- **HeatmapOverlay** : nutrients/toxins/temperature (toggle)
-- **Grille debug** : toggle G
+- **WorldGrid** : monde infini chunks 32×32 cellules (256×256px), 7 champs chimiques
+  - `BIOME_REGEN` O2 : GRASS=0.040, WOOD=0.055, EARTH=0.010, WATER=0.018, ROCK=0.008 (tous les 30 ticks)
+  - `BIOME_REGEN_CAP` O2 : GRASS=0.45, WOOD=0.55, EARTH=0.26
+  - Buffer atmosphérique : O2 drift vers 0.21 (+0.02/30ticks si < 0.21)
+  - CO2 implicite : `co2 = 1.0 - o2` — pas de champ dédié
+  - Regen sur TOUS les chunks (pas seulement actifs), toxins dégradent -0.002/30ticks
+- **AgentPool** : data-oriented PackedFloat32Array, SOFT_CAP=8000, TICK_STRIDE=2
+  - Bacteria: metabolism=0.010, uptake=0.018, division_threshold=1.2, max_age=3000
+    - O2 : read-only (stress check), pas d'écriture — WorldGrid gère l'équilibre
+    - Mort hypoxie si O2 < 0.10
+  - Virus : brownien, propagation contact, lifetime
+  - Protozoa : FSM IDLE→SEEK→HUNT→REPRODUCE, sense_radius=90, metabolism=0.006, division_threshold=2.5
+  - Plantes : photosynthèse, spread timer 250-600 ticks, phytoremediation toxines
+  - Fungi : décomposeurs, metabolism=0.003, spread si nutrients > 0.2
+- **ChunkSpawner** : `emergence_mode: bool` — si true, spawn seulement si nutrients≥0.25 + O2≥0.18 + water≥0.20 + temp 10-40°C + randf() < 0.002
+  - Mode seeded (défaut) : seed 50 bactéries + 4 protozoa + 15 plantes + 12 fungi au démarrage
+- **BIOME_CAPACITY** : [bacteria, virus, protozoa, plant, fungi] par chunk
+  - GRASS: [30,10,6,6,4] — EARTH: [20,8,4,4,3] — WOOD: [35,8,5,5,8]
+- **PopulationLOD** : zone active = individus, hors zone = counts agrégés par chunk
+
+### Rendu
+- **BiomeRenderer** : CanvasLayer(-10) + ColorRect full-screen, shader Voronoi jitter (frontières organiques), eau animée (caustics, ondulations, surface wave) en world-space, `time` uniform
+- **SimRenderer** : MultiMeshInstance2D, culling O(viewport) spatial hash, clustering 24px, tooltip
+  - Zoom < 0.8 → agents cachés, max 1000 à l'écran
+- **TerritoryOverlay** : MeshInstance2D pool, zones par type d'entité, shader animé pulsant
+- **DensityFogRenderer** : halos par chunk agrégé
+- **HeatmapOverlay** : nutrients/toxins/temperature (toggle H)
+
+### UI & Menus
+- **MainMenu** : scène d'entrée, animations stagger/slide, panels New Game / Load Game / Settings
+  - Slide depuis droite, dimming menu central, hover buttons
+- **SaveManager** (autoload) : slots illimités `user://saves/`, autosave Timer, persistence emergence_mode
+- **InGameHUD** : autosave status flash (CanvasLayer 20)
+- **PauseMenu** : Escape in-game, Resume/Settings/Exit, toggle Natural Emergence Mode, autosave interval slider
+- **SpawnControlPanel** : toggle spawn + visibilité + territoire par type, counts live
+- **BiomeEditor** : toggle E, peinture biomes, brush size scroll
+- **DebugOverlay** : F1, FPS/ticks/population/O2 net/O2 local+CO2 local sous curseur
+- **TerritoryInfoPanel** : clic zone → total agents + visibles à l'écran par type
 
 ---
 
-## In Progress
+## In Progress / Pending
 
-- Validation de l'équilibre écologique in-game (chaîne alimentaire, production O2 visible)
+- **O2 stabilisation** : buffer atmosphérique +0.02/30ticks — à valider in-game (O2 devrait tenir 0.19-0.23)
+- **Natural Emergence Mode** : implémenté, à tester (menu → Settings → toggle)
+- **Équilibre Lotka-Volterra** : oscillation bactéries/protozoa visible en simulation, à confirmer in-game
+- **load_save ne charge pas les parties** : bug UI à investiguer (saves existent bien dans user://)
 
 ---
 
 ## Known Issues
 
-- Les UID Godot dans les .tscn sont invalides (warnings inoffensifs au lancement)
+- UIDs Godot invalides dans .tscn (warnings inoffensifs)
+- Load Game panel : saves parfois non affichées (race condition queue_free/populate — await process_frame ajouté)
+- O2 déficit persistant à investiguer avec les nouveaux paramètres
 
 ---
 
-## Architecture critique — à lire en session
+## Architecture critique
 
 ### Stack
-- Godot 4.6 GDScript pur, zéro dépendance externe
+- Godot 4.6 GDScript pur, OpenGL 3.3 Compatibility
 - Lancement : `godot .` dans `/home/trinity/Documents/DEVS/Primordia`
+- Scène principale : `MainMenu.tscn` → `World.tscn`
 
-### Autoloads (ordre de chargement)
-1. `SimulationClock` — tick loop
-2. `WorldGrid` — chunks infinis + biome defaults/regen/capacity
-3. `AgentPool` — tous les agents en PackedFloat32Array + _chunk_counts
-4. `ChunkSpawner` — spawn écologique filtré par biome
-5. `PopulationLOD` — agrégation hors zone active
+### Autoloads (ordre)
+1. `SaveManager` — slots, autosave, persistence
+2. `SimulationClock` — tick loop
+3. `WorldGrid` — chunks + biomes + champs chimiques
+4. `AgentPool` — tous les agents PackedFloat32Array
+5. `ChunkSpawner` — spawn écologique
+6. `PopulationLOD` — agrégation hors zone
 
 ### Données agents (AgentPool)
-Chaque agent = index i dans des tableaux plats :
-- `pos_x[i], pos_y[i]` — position monde
-- `dir_x[i], dir_y[i]` — direction
-- `energy[i], speed[i], size_arr[i], metabolism[i]`
-- `division_threshold[i], mutation_rate[i], resistance[i], virulence[i]`
-- `age[i], max_age[i], agent_type[i]` — 0=bacterium, 1=virus, 2=protozoa, 3=plant, 4=fungi
-- `flags[i]` — bitmask : FLAG_ALIVE=1, FLAG_GRAM_POS=2, FLAG_SPORE=4
-- `dead_timer[i]` — 300 ticks decay cadavre
-- `run_timer[i], spore_timer[i]`
+`pos_x/y, dir_x/y, energy, speed, size_arr, metabolism, division_threshold, mutation_rate, resistance, virulence, age, max_age, agent_type, flags (ALIVE=1, GRAM_POS=2, SPORE=4), dead_timer, run_timer, spore_timer, brain_state, target_i, sense_radius`
 
 ### WorldGrid chunks
-- Chunk = Vector2i(cx, cy), world pos → chunk : `floor(pos / 256.0)`
-- Champs par chunk : Dictionary { "fields": {key: Array[float] 1024 cells}, "last_active": float }
-- Éviction après 300s inactivité (biome_type jamais évicté)
-- `get_cell_value(wx, wy, key)` / `set_cell_value(wx, wy, key, val)` avec coords globales
-- `BIOME_DEFAULTS` : valeurs initiales par biome
-- `BIOME_REGEN` : taux + caps par biome, appliqué sur tous chunks chaque tick
-- `BIOME_CAPACITY` : max par type d'agent par chunk, scale avec nutrients
-
-### Rendu
-- `SimRenderer` (Node2D dans AgentLayer) : MultiMeshInstance2D + shader `agent.gdshader`
-  - Culling O(viewport) via spatial hash, `_rebuild_spatial` every 2 ticks
-  - Clustering : cellule 24px écran, > 3 agents → cercle groupé, tooltip hover
-  - `_dirty` flag dans AgentPool → rendu seulement si simulation a tiqué
-- `DensityFogRenderer` : agrège PopulationLOD, 1 quad par chunk hors zone, shader `density_fog.gdshader`
-  - Bloom radial, couleur dominante, intensité proportionnelle à la densité
-- Shader `agent.gdshader` : 8 types visuels (gram+, gram-, spore, virus, dead, protozoa, plant, fungi)
-- Scene order dans World.tscn : BiomeRenderer → DensityFogLayer → HeatmapOverlay
+- Chunk coords : `floor(world_pos / 256.0)`
+- Champs : 7 × Array[float] 1024 cellules (32×32)
+- Éviction après 300s, biome_type jamais évicté
+- CO2 implicite : `1.0 - oxygen`
 
 ### Fichiers clés
 ```
+scripts/autoloads/SaveManager.gd
 scripts/autoloads/SimulationClock.gd
 scripts/autoloads/WorldGrid.gd
 scripts/managers/AgentPool.gd
@@ -104,42 +109,27 @@ scripts/managers/ChunkSpawner.gd
 scripts/managers/PopulationLOD.gd
 scripts/rendering/SimRenderer.gd
 scripts/rendering/BiomeRenderer.gd
+scripts/rendering/TerritoryOverlay.gd
 scripts/rendering/HeatmapOverlay.gd
 scripts/rendering/DensityFogRenderer.gd
-scripts/world/WorldCamera.gd
-scripts/world/World.gd
-scripts/ui/TimeControlBar.gd
-scripts/ui/DebugOverlay.gd
-scripts/ui/SpawnControlPanel.gd
-scripts/ui/BiomeEditor.gd
-shaders/agent.gdshader
-shaders/biome.gdshader
-shaders/grid_debug.gdshader
-shaders/heatmap.gdshader
-shaders/density_fog.gdshader
-scenes/World.tscn
-scenes/AgentLayer.tscn
-scenes/BiomeRenderer.tscn
-scenes/HeatmapOverlay.tscn
-scenes/DensityFogLayer.tscn
-scenes/ui/TimeControlBar.tscn
-scenes/ui/DebugOverlay.tscn
-scenes/ui/SpawnControlPanel.tscn
-scenes/ui/BiomeEditor.tscn
-research/  ← 10 fichiers de recherche scientifique Phase 0
+scripts/world/World.gd, WorldCamera.gd
+scripts/ui/MainMenu.gd, PauseMenu.gd, InGameHUD.gd
+scripts/ui/SpawnControlPanel.gd, BiomeEditor.gd
+scripts/ui/TerritoryInfoPanel.gd, DebugOverlay.gd
+shaders/biome.gdshader, agent.gdshader, territory.gdshader
+shaders/density_fog.gdshader, heatmap.gdshader, menu_noise.gdshader
+tools/eco_sim.py  ← simulation Python écologie (paliers 500/2000/5000/10000 ticks)
+scenes/World.tscn, MainMenu.tscn
 ```
 
----
-
-## Décisions architecturales majeures prises
-
-- **Monde infini chunks** au lieu de grille fixe (décision session 2026-05-08)
-- **Data-oriented AgentPool** au lieu de Node2D par agent — gain x10-100 perf
-- **MultiMeshInstance2D** au lieu de _draw() batch — 1 draw call GPU
-- **Diffusion wall-clock** découplée du tick rate (0.1s fixe)
-- **Wrap-around supprimé** — monde vraiment infini, pas toroïdal
-- **Godot 4 pur** — pas d'éditeur requis, tout généré en fichiers texte
-- **Per-chunk carrying capacity** (BIOME_CAPACITY) au lieu de cap global — équilibre écologique local, scale avec nutrients
-- **Density fog LOD** : hors zone active, chunks rendus comme halos (1 quad/chunk) via DensityFogRenderer — permet O(viewport) pur côté rendu sans sacrifier la lisibilité macro
-- **Fungi dead scan O(n) remplacé** par proxy nutrients > 0.4 — évite le scan complet des agents morts
-- **Toxin production réduite 16x** (0.003/tick) + dégradation 10x plus rapide (0.002/regen) — évite empoisonnement permanent du monde
+### Décisions architecturales majeures
+- Monde infini chunks (pas grille fixe)
+- Data-oriented AgentPool (pas Node2D par agent) — x10-100 perf
+- MultiMeshInstance2D — 1 draw call GPU
+- Diffusion wall-clock 0.1s découplée du tick rate
+- CO2 implicite (1-O2) — pas de champ dédié, zéro overhead
+- O2 write-only par WorldGrid (agents lisent, n'écrivent pas) — stabilité garantie
+- Voronoi jitter biome shader — frontières organiques seam-free
+- Eau dans biome shader full-screen (world-space) — seamless, pas de sprites individuels
+- Natural Emergence Mode — spawn conditionnel environnemental
+- SaveManager autoload avec slots, autosave, emergence_mode persisté

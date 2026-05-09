@@ -17,6 +17,8 @@ var _panel_origin_x: float = 0.0
 @onready var _btn_back_settings: Button = $PanelSettings/VBox/BtnBack
 @onready var _label_autosave_status: Label = $Panel/VBox/LabelAutosaveStatus
 
+var _check_emergence: CheckButton
+
 
 func _ready() -> void:
 	layer = 50
@@ -37,6 +39,7 @@ func _ready() -> void:
 	_btn_back_settings.pressed.connect(_close_settings)
 	_slider_autosave.value_changed.connect(_on_slider_changed)
 
+	_build_emergence_toggle()
 	_setup_settings_values()
 
 	SaveManager.autosave_triggered.connect(_on_autosave)
@@ -107,6 +110,29 @@ func _close_settings() -> void:
 	tw.chain().tween_callback(func() -> void: _panel_settings.visible = false)
 
 
+func _build_emergence_toggle() -> void:
+	var vbox: VBoxContainer = $PanelSettings/VBox
+	var label: Label = Label.new()
+	label.text = "Entities only spawn from environmental conditions"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_check_emergence = CheckButton.new()
+	_check_emergence.text = "Natural Emergence Mode"
+	_check_emergence.toggled.connect(_on_emergence_toggled)
+	vbox.add_child(label)
+	vbox.add_child(_check_emergence)
+	vbox.move_child(label, vbox.get_child_count() - 3)
+	vbox.move_child(_check_emergence, vbox.get_child_count() - 3)
+
+
+func _on_emergence_toggled(value: bool) -> void:
+	var spawner: Node = get_tree().get_first_node_in_group("chunk_spawner")
+	if spawner != null:
+		spawner.emergence_mode = value
+	var slot_id: String = SaveManager.get_current_slot_id()
+	if slot_id != "":
+		SaveManager.save_current(slot_id)
+
+
 func _setup_settings_values() -> void:
 	var slot_id: String = SaveManager.get_current_slot_id()
 	var interval: float = 300.0
@@ -120,6 +146,9 @@ func _setup_settings_values() -> void:
 	_slider_autosave.max_value = 3600.0
 	_slider_autosave.value = interval
 	_update_interval_label(interval)
+	var spawner: Node = get_tree().get_first_node_in_group("chunk_spawner")
+	if spawner != null and _check_emergence != null:
+		_check_emergence.set_pressed_no_signal(spawner.emergence_mode)
 
 
 func _on_slider_changed(value: float) -> void:
