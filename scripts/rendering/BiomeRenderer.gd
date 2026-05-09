@@ -59,13 +59,13 @@ func _update_chunks() -> void:
 			var west: int  = WorldGrid.get_chunk_biome(Vector2i(cx - 1, cy))
 			var center: Vector2 = Vector2(cx, cy) * CHUNK_PX + Vector2(CHUNK_PX * 0.5, CHUNK_PX * 0.5)
 			_multimesh.set_instance_transform_2d(slot, Transform2D(0.0, Vector2.ONE, 0.0, center))
-			# Normalize to 0-1 (Color channels are clamped). Decode in shader: val = round(ch * 4)
-			# alpha encodes south*5+west (max=24), normalize /24
+			# Only blend north and east edges — each border is covered exactly once.
+			# Normalize /4 so Color 8-bit precision is sufficient (steps of 0.25, no ambiguity).
 			_multimesh.set_instance_custom_data(slot, Color(
 				float(biome) / 4.0,
 				float(north) / 4.0,
-				float(east) / 4.0,
-				(float(south) * 5.0 + float(west)) / 24.0
+				float(east)  / 4.0,
+				0.0
 			))
 			slot += 1
 
