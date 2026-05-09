@@ -1,6 +1,6 @@
 # ARBORESCENCE.md — Primordia
 
-> Arborescence cible du projet. Mise à jour à chaque ajout de fichier structurant.
+> Arborescence réelle du projet. Mise à jour à chaque ajout de fichier structurant.
 
 ```
 Primordia/
@@ -10,65 +10,47 @@ Primordia/
 ├── STATE.md                             — Résumé vivant cross-session
 ├── TODO.md                              — Backlog structuré par phase
 ├── ARBORESCENCE.md                      — Ce fichier
-├── .env.example                         — Pas d'API externe
 │
-├── autoloads/                           — Singletons globaux (déclarés dans project.godot)
-│   ├── SimulationClock.gd               — Tick loop, pause, vitesse (0.25x–8x)
-│   ├── WorldGrid.gd                     — Grille monde, cellules, nutriments, agents
-│   ├── PopulationManager.gd             — Spawn, limites, stats globales par espèce
-│   ├── EventLog.gd                      — Log événements simulation (extinctions, pics)
-│   └── FilterManager.gd                 — État actif des filtres visuels
-│
-├── scenes/                              — Scènes Godot (.tscn)
-│   ├── World.tscn                       — Scène principale : grille + camera + UI
-│   ├── agents/
-│   │   ├── Bacterium.tscn               — Scène agent bactérie
-│   │   ├── Virus.tscn                   — Scène agent virus
-│   │   ├── Herbivore.tscn               — Macro-organisme herbivore
-│   │   ├── Carnivore.tscn               — Macro-organisme carnivore
-│   │   └── Decomposer.tscn              — Décomposeur (recyclage nutriments)
-│   └── ui/
-│       ├── HUD.tscn                     — HUD principal (filtres, vitesse, stats rapides)
-│       ├── TimeControlBar.tscn          — Pause / play / speed slider
-│       ├── StatsPanel.tscn              — Panel stats globales + graphes
-│       ├── SpecimenInspector.tscn       — Panel détail d'un agent sélectionné
-│       └── DebugOverlay.tscn            — FPS, tick rate, grille debug
-│
-├── scripts/                             — GDScript logique (.gd)
-│   ├── agents/
-│   │   ├── Agent.gd                     — Classe de base : stats, cycle de vie, rendu
-│   │   ├── AgentBrain.gd                — FSM individuelle : idle/seek/flee/reproduce/die
-│   │   ├── SwarmDirector.gd             — IA collective : groupes, migration, émergence
-│   │   ├── Bacterium.gd                 — Déplacement brownien, consommation nutriments
-│   │   ├── Virus.gd                     — Propagation, infection, mutation
-│   │   ├── MacroOrganism.gd             — Herbivore/carnivore, pathfinding, combat
-│   │   └── ContaminationSystem.gd       — Calcul propagation, résistance, quarantaine
+├── scripts/
+│   ├── autoloads/
+│   │   ├── SimulationClock.gd           — Tick loop, pause, vitesse (0.1x–32x)
+│   │   └── WorldGrid.gd                 — Chunks infinis, 7 champs chimiques, BIOME_DEFAULTS/REGEN/CAPACITY
+│   ├── managers/
+│   │   ├── AgentPool.gd                 — Data-oriented agents (PackedFloat32Array), _chunk_counts
+│   │   ├── ChunkSpawner.gd              — Spawn écologique filtré par biome
+│   │   └── PopulationLOD.gd             — Agrégation hors zone active (counts par chunk)
+│   ├── rendering/
+│   │   ├── SimRenderer.gd               — MultiMeshInstance2D, culling O(viewport), clustering
+│   │   ├── BiomeRenderer.gd             — Flat color + shader procédural par biome
+│   │   ├── HeatmapOverlay.gd            — Overlay nutrients/toxins/temperature
+│   │   └── DensityFogRenderer.gd        — Halos luminescents chunks agrégés (1 quad/chunk)
 │   ├── world/
-│   │   ├── Cell.gd                      — Données d'une cellule de grille
-│   │   ├── NutrientDiffusion.gd         — Diffusion nutriments entre cellules
-│   │   └── BiomeGenerator.gd            — Génération procédurale des biomes
+│   │   ├── WorldCamera.gd               — WASD + scroll zoom + pan, zoom adaptatif
+│   │   └── World.gd                     — Scène principale, orchestration
 │   └── ui/
-│       ├── GraphRenderer.gd             — Rendu courbes temps-réel (populations)
-│       ├── HeatmapOverlay.gd            — Calcul + rendu heatmap densité/danger
-│       └── SpecimenInspectorController.gd — Logique panel détail agent
+│       ├── TimeControlBar.gd            — Pause / play / vitesse UI
+│       ├── DebugOverlay.gd              — FPS, tick rate, zoom, coords, O2 production (F1)
+│       ├── SpawnControlPanel.gd         — Toggle spawn par type (bacteria/virus/protozoa/plants/fungi)
+│       └── BiomeEditor.gd               — Outil peinture biomes in-game
 │
-├── shaders/                             — CanvasItem shaders GLSL (.gdshader)
-│   ├── cartoon_outline.gdshader         — Outline noir + aplats couleur
-│   ├── filter_blood.gdshader            — Overlay sang, vaisseaux, impacts
-│   ├── filter_muscles.gdshader          — Anatomique, fibres musculaires
-│   ├── filter_bacteria.gdshader         — Bioluminescence, densité bactérienne
-│   └── heatmap.gdshader                 — Rendu heatmap couleur (bleu→rouge)
+├── shaders/
+│   ├── agent.gdshader                   — 8 types visuels (gram+/-, spore, virus, dead, protozoa, plant, fungi)
+│   ├── biome.gdshader                   — Texturing procédural par biome
+│   ├── grid_debug.gdshader              — Grille debug toggle G
+│   ├── heatmap.gdshader                 — Rendu heatmap couleur (bleu→rouge)
+│   └── density_fog.gdshader             — Bloom radial, couleur dominante, intensité densité
 │
-├── assets/                              — Ressources statiques
-│   ├── fonts/
-│   │   └── primordia_ui.ttf             — Police UI (monospace ou organique)
-│   ├── icons/
-│   │   ├── pause.svg
-│   │   ├── play.svg
-│   │   └── speed.svg
-│   └── audio/                           — Sons ambiance simulation (optionnel)
+├── scenes/
+│   ├── World.tscn                       — Scène principale (BiomeRenderer→DensityFogLayer→HeatmapOverlay→AgentLayer)
+│   ├── AgentLayer.tscn                  — Container SimRenderer
+│   ├── BiomeRenderer.tscn               — Rendu biomes
+│   ├── HeatmapOverlay.tscn              — Overlay heatmap
+│   ├── DensityFogLayer.tscn             — Rendu density fog LOD
+│   └── ui/
+│       ├── TimeControlBar.tscn
+│       ├── DebugOverlay.tscn
+│       ├── SpawnControlPanel.tscn
+│       └── BiomeEditor.tscn
 │
-└── ui/                                  — Thème Godot + styles (.tres)
-    ├── theme_primordia.tres             — Thème UI global dark
-    └── stylebox_panel.tres              — Styleboxes panels stats
+└── research/                            — 10 fichiers de recherche scientifique Phase 0
 ```

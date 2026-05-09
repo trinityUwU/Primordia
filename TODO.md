@@ -1,5 +1,5 @@
 # TODO.md — Primordia
-> Mise à jour : 2026-05-08 | Légende : [ ] todo · [x] done · [~] en cours · [!] bloqué
+> Mise à jour : 2026-05-09 | Légende : [ ] todo · [x] done · [~] en cours · [!] bloqué
 
 ---
 
@@ -56,9 +56,9 @@
 
 ### Biome system
 - [x] BiomeMap : chaque chunk a un type (eau, terre, herbe, bois, roche)
-- [ ] Valeurs initiales par biome (nutrients, water, temperature, oxygen, ph, toxins, light)
-- [ ] Limites de régénération par biome (eau régénère water vite, forêt régénère nutrients)
-- [ ] Impact spawn : ChunkSpawner filtre par biome (anaérobies en eau, etc.)
+- [x] Valeurs initiales par biome (nutrients, water, temperature, oxygen, ph, toxins, light)
+- [x] Limites de régénération par biome (eau régénère water vite, forêt régénère nutrients)
+- [x] Impact spawn : ChunkSpawner filtre par biome (anaérobies en eau, etc.)
 
 ### Rendu biomes
 - [x] Flat color par biome (fond coloré selon type de chunk)
@@ -77,12 +77,13 @@
 
 ### Simulation auto-entretenue
 - [x] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
-- [ ] Équilibre division/mort : taux division > taux mort naturelle dans env stable
-- [ ] Nutrient cycle fermé : production (plantes) == consommation (bactéries) à l'équilibre
+- [~] Équilibre division/mort : taux division > taux mort naturelle dans env stable
+- [~] Nutrient cycle fermé : production (plantes) == consommation (bactéries) à l'équilibre
 
 ### Scale
 - [x] MAX_AGENTS dynamique (RAM-based) — calculé au démarrage, budget 4GB, ~20M max
 - [x] LOD simulation : PopulationLOD — zone active individus, hors zone = counts agrégés par chunk
+- [x] DensityFogRenderer : halos lumineux par chunk agrégé (1 quad/chunk, bloom shader)
 - [ ] Chunk data compression pour chunks inactifs
 
 ### Monde persistant
@@ -98,6 +99,16 @@
 - [ ] GDExtension C++ pour SIMD si FSM devient bottleneck
 - [ ] TICK_STRIDE adaptatif selon charge CPU
 - [ ] Profiling : identifier bottleneck à 100K+ agents
+
+---
+
+## Phase 3d — LOD Rendu Densité & Visibilité
+
+- [x] DensityFogRenderer : halos lumineux par chunk agrégé (1 quad/chunk, bloom shader)
+- [x] SimRenderer O(viewport) : spatial hash pour culling agents hors vue
+- [ ] Tooltip popup au hover sur zone de densité (stats du chunk agrégé : counts par type)
+- [ ] Zoom-LOD transition : fondu entre quads individuels et halo densité selon zoom level
+- [ ] Sélection d'entités individuelles à afficher par type depuis un menu (voir spec)
 
 ---
 
