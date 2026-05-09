@@ -1,0 +1,34 @@
+[gd_scene load_steps=2 format=3 uid="uid://ingamehud"]
+
+[ext_resource type="Script" path="res://scripts/ui/InGameHUD.gd" id="1_hud"]
+
+[node name="InGameHUD" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_hud")
+
+[node name="AutosaveStatus" type="Label" parent="."]
+anchors_preset = 0
+offset_left = 12.0
+offset_top = -36.0
+offset_right = 260.0
+offset_bottom = -12.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+grow_vertical = 0
+text = "● Autosaved 00:00 ago"
+theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="SavingFlash" type="Label" parent="."]
+anchors_preset = 0
+offset_left = 12.0
+offset_top = -56.0
+offset_right = 140.0
+offset_bottom = -38.0
+anchor_top = 1.0
+anchor_bottom = 1.0
+grow_vertical = 0
+text = "Saving..."
+modulate = Color(0.31, 0.76, 0.97, 0)
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+theme_override_font_sizes/font_size = 12

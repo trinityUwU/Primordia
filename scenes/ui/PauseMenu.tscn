@@ -1,0 +1,120 @@
+[gd_scene load_steps=2 format=3 uid="uid://pausemenu"]
+
+[ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="1_pm"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_pm")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.6)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -200.0
+offset_right = 140.0
+offset_bottom = 200.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="LabelTitle" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "PAUSED"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="BtnResume" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Resume"
+
+[node name="BtnSettings" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Settings"
+
+[node name="BtnExit" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Exit to Main Menu"
+
+[node name="LabelAutosaveStatus" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = ""
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+horizontal_alignment = 1
+
+[node name="PanelSettings" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -200.0
+offset_right = 160.0
+offset_bottom = 200.0
+
+[node name="VBox" type="VBoxContainer" parent="PanelSettings"]
+layout_mode = 2
+theme_override_constants/separation = 16
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="LabelTitle" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "Settings"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+horizontal_alignment = 1
+
+[node name="LabelAutosaveTitle" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "Autosave interval"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="SliderAutosave" type="HSlider" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 24)
+min_value = 5.0
+max_value = 3600.0
+value = 300.0
+
+[node name="LabelInterval" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "5 min"
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+horizontal_alignment = 1
+
+[node name="BtnSaveSettings" type="Button" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Save Settings"
+
+[node name="BtnBack" type="Button" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Back"

@@ -243,15 +243,15 @@ func spawn_protozoa(px: float, py: float) -> int:
 	dir_x[i]             = cos(angle)
 	dir_y[i]             = sin(angle)
 	energy[i]            = 3.0
-	speed[i]             = 50.0
+	speed[i]             = 45.0
 	size_arr[i]          = 2.5
-	metabolism[i]        = 0.002
-	division_threshold[i]= 1.2
+	metabolism[i]        = 0.006  # higher — starves faster without prey, limits runaway growth
+	division_threshold[i]= 2.0   # needs more energy to reproduce → slower boom
 	mutation_rate[i]     = 0.01
 	resistance[i]        = 0.8
 	virulence[i]         = 0.9
 	age[i]               = 0
-	max_age[i]           = 8000
+	max_age[i]           = 5000
 	agent_type[i]        = TYPE_PROTOZOA
 	flags[i]             = FLAG_ALIVE
 	dead_timer[i]        = 0
@@ -259,7 +259,7 @@ func spawn_protozoa(px: float, py: float) -> int:
 	spore_timer[i]       = 0
 	brain_state[i]       = STATE_IDLE
 	target_i[i]          = -1
-	sense_radius[i]      = 200.0
+	sense_radius[i]      = 120.0  # reduced — harder to find prey, less pressure on bacteria
 	if i == count:
 		count += 1
 	_alive_count += 1
@@ -320,16 +320,16 @@ func spawn_fungi(px: float, py: float) -> int:
 	pos_y[i]             = py
 	dir_x[i]             = 0.0
 	dir_y[i]             = 0.0
-	energy[i]            = 0.8
+	energy[i]            = 1.5
 	speed[i]             = 0.0
 	size_arr[i]          = 2.0
-	metabolism[i]        = 0.008
-	division_threshold[i]= 1.8
+	metabolism[i]        = 0.003  # slow — survives on minimal nutrients
+	division_threshold[i]= 1.4
 	mutation_rate[i]     = 0.008
-	resistance[i]        = 0.5
+	resistance[i]        = 0.7
 	virulence[i]         = 0.2
 	age[i]               = 0
-	max_age[i]           = 6000
+	max_age[i]           = 8000
 	agent_type[i]        = TYPE_FUNGI
 	flags[i]             = FLAG_ALIVE
 	dead_timer[i]        = 0
@@ -469,10 +469,11 @@ func _tick_bacterium(i: int) -> void:
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	var toxins: float = WorldGrid.get_cell_value(gx, gy, "toxins")
 	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
-	if toxins > 0.6 and randf() < toxins * 0.05:
+	# Toxin stress: progressive damage above threshold
+	if toxins > 0.4 and randf() < (toxins - 0.4) * 0.18:
 		kill(i)
 		return
-	if o2 < 0.05 and randf() < 0.1:
+	if o2 < 0.08 and randf() < (0.08 - o2) * 2.0:
 		kill(i)
 		return
 	_move_bacterium(i)
@@ -553,18 +554,18 @@ func _consume_nutrients(i: int) -> void:
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	var available: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
-	var uptake: float = minf(0.008, available)  # reduced from 0.03 — realistic microbial uptake
+	var uptake: float = minf(0.018, available)
 	WorldGrid.set_cell_value(gx, gy, "nutrients", available - uptake)
 	# O2 consumption (aerobic respiration)
 	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
-	var o2_used: float = minf(uptake * 0.5, o2)
+	var o2_used: float = minf(uptake * 0.15, o2)
 	WorldGrid.set_cell_value(gx, gy, "oxygen", o2 - o2_used)
 	_o2_consumed_tick += o2_used
 
-	# Toxin production (metabolic waste)
+	# Toxin production — scales with uptake, creates density pressure
 	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
-	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + 0.003, 1.0))
-	energy[i] = minf(energy[i] + uptake * 2.0, 2.0)
+	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + uptake * 0.4, 1.0))
+	energy[i] = minf(energy[i] + uptake * 1.2, 2.0)
 
 
 func _check_sporulation(i: int) -> void:
@@ -776,6 +777,9 @@ func _tick_plant(i: int) -> void:
 			minf(WorldGrid.get_cell_value(gx, gy, "oxygen") + produced * 0.2, 0.4))
 		WorldGrid.set_cell_value(gx, gy, "water",
 			maxf(water - produced * 0.1, 0.0))
+		# Phytoremediation: plants degrade toxins
+		var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
+		WorldGrid.set_cell_value(gx, gy, "toxins", maxf(tox - produced * 0.15, 0.0))
 		_o2_produced_tick += produced * 0.2
 	else:
 		energy[i] -= metabolism[i]
@@ -785,7 +789,7 @@ func _tick_plant(i: int) -> void:
 	# Spread: create a new plant nearby every run_timer ticks
 	run_timer[i] -= 1
 	if run_timer[i] <= 0:
-		run_timer[i] = randi_range(100, 300)
+		run_timer[i] = randi_range(250, 600)
 		if energy[i] >= division_threshold[i] and _alive_count < SOFT_CAP:
 			var chunk_coord: Vector2i = Vector2i(floori(pos_x[i] / 256.0), floori(pos_y[i] / 256.0))
 			var capacity: int = WorldGrid.get_chunk_capacity(chunk_coord, TYPE_PLANT)
@@ -818,7 +822,7 @@ func _tick_fungi(i: int) -> void:
 	# fungi work on cadavers nearby)
 	var local_nutrients: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
 	# Absorb nutrients from soil
-	var uptake: float = minf(0.02, local_nutrients * 0.3)
+	var uptake: float = minf(0.02738, local_nutrients * 0.3)
 	WorldGrid.set_cell_value(gx, gy, "nutrients", local_nutrients - uptake)
 	energy[i] = minf(energy[i] + uptake * 1.5, division_threshold[i] * 1.5)
 	# Decompose nearby dead agents — recycle their energy back to soil
@@ -835,7 +839,7 @@ func _tick_fungi(i: int) -> void:
 			var gx_f: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 			var gy_f: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 			var local_n: float = WorldGrid.get_cell_value(gx_f, gy_f, "nutrients")
-			if local_n > 0.4:
+			if local_n > 0.2:
 				var angle: float = randf() * TAU
 				var dist: float = randf_range(8.0, 32.0)
 				var ci: int = spawn_fungi(

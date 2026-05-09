@@ -48,7 +48,7 @@
 
 - [~] Vérifier FPS réels à x16/x32 après dernier fix
 - [~] Tester clustering tooltip visuellement
-- [ ] Fixer debug overlay Population (affiche "0" — non branché à AgentPool)
+- [x] Fixer debug overlay Population (branché à AgentPool._type_counts — OK)
 
 ---
 
@@ -77,8 +77,8 @@
 
 ### Simulation auto-entretenue
 - [x] ChunkSpawner → mode seed uniquement au démarrage, population maintenue par reproduction
-- [~] Équilibre division/mort : taux division > taux mort naturelle dans env stable
-- [~] Nutrient cycle fermé : production (plantes) == consommation (bactéries) à l'équilibre
+- [x] Équilibre division/mort : uptake 0.018, toxins progressifs 0.4→, O2 seuil rehaussé
+- [x] Nutrient cycle fermé : plantes dégradent toxines, bactéries saturent zone → mort naturelle
 
 ### Scale
 - [x] MAX_AGENTS dynamique (RAM-based) — calculé au démarrage, budget 4GB, ~20M max
@@ -126,7 +126,7 @@
 - [ ] État de santé global : composite des systèmes internes
 
 ### Espèces
-- [ ] Protozoaires : prédateurs de bactéries, unicellulaires
+- [x] Protozoaires : prédateurs de bactéries, unicellulaires — FSM IDLE/SEEK/HUNT/REPRODUCE actif
 - [ ] Champignons : décomposeurs, parasites possibles
 - [ ] Plantes / algues : producteurs primaires, fixent nutriments
 - [ ] Herbivores, Carnivores, Omnivores, Parasites, Décomposeurs

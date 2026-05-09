@@ -11,6 +11,7 @@ var _grid_visible: bool = false
 @onready var _debug_overlay: Control = $UILayer/DebugOverlay
 @onready var _territory_overlay: Node2D = $TerritoryOverlay
 @onready var _territory_info: Control = $UILayer/TerritoryInfoPanel
+@onready var _hud: CanvasLayer = $InGameHUD
 
 
 func _ready() -> void:
@@ -18,6 +19,11 @@ func _ready() -> void:
 	_debug_overlay.visible = false
 	_camera.zoom_level_changed.connect(_on_zoom_level_changed)
 	_territory_overlay.territory_clicked.connect(_on_territory_clicked)
+	SaveManager.autosave_triggered.connect(_on_autosave_triggered)
+
+
+func _on_autosave_triggered(_slot_id: String) -> void:
+	pass  # HUD gère le signal directement via son propre connect
 
 
 func _on_territory_clicked(chunk_coord: Vector2i, agents: Array[int]) -> void:

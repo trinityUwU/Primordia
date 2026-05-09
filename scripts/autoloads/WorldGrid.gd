@@ -17,27 +17,27 @@ const BIOME_WOOD:  int = 3
 const BIOME_ROCK:  int = 4
 
 const BIOME_REGEN: Dictionary = {
-	0: { "nutrients": 0.008, "water": 0.02,  "oxygen": 0.012, "ph_toward": 8.1 },   # WATER
-	1: { "nutrients": 0.025, "water": 0.005, "oxygen": 0.008, "ph_toward": 6.5 },   # EARTH
-	2: { "nutrients": 0.06,  "water": 0.015, "oxygen": 0.015, "ph_toward": 6.8 },   # GRASS
-	3: { "nutrients": 0.09,  "water": 0.025, "oxygen": 0.022, "ph_toward": 5.2 },   # WOOD
+	0: { "nutrients": 0.008, "water": 0.02,  "oxygen": 0.018, "ph_toward": 8.1 },   # WATER — algues
+	1: { "nutrients": 0.025, "water": 0.005, "oxygen": 0.010, "ph_toward": 6.5 },   # EARTH
+	2: { "nutrients": 0.06,  "water": 0.015, "oxygen": 0.040, "ph_toward": 6.8 },   # GRASS — photosynthèse
+	3: { "nutrients": 0.09,  "water": 0.025, "oxygen": 0.055, "ph_toward": 5.2 },   # WOOD — forêt, fort producteur O2
 	4: { "nutrients": 0.003, "water": 0.001, "oxygen": 0.008, "ph_toward": 7.5 },   # ROCK
 }
 const BIOME_REGEN_CAP: Dictionary = {
-	0: { "nutrients": 0.3,  "water": 1.0,  "oxygen": 0.22 },
-	1: { "nutrients": 0.7,  "water": 0.6,  "oxygen": 0.24 },
-	2: { "nutrients": 1.0,  "water": 0.8,  "oxygen": 0.32 },
-	3: { "nutrients": 1.0,  "water": 0.95, "oxygen": 0.38 },
+	0: { "nutrients": 0.3,  "water": 1.0,  "oxygen": 0.28 },
+	1: { "nutrients": 0.7,  "water": 0.6,  "oxygen": 0.26 },
+	2: { "nutrients": 1.0,  "water": 0.8,  "oxygen": 0.45 },
+	3: { "nutrients": 1.0,  "water": 0.95, "oxygen": 0.55 },
 	4: { "nutrients": 0.08, "water": 0.15, "oxygen": 0.22 },
 }
 
 const BIOME_CAPACITY: Dictionary = {
 	# max agents per chunk per type: [bacteria, virus, protozoa, plant, fungi]
-	0: [15, 5, 3, 2, 0],    # WATER — some bacteria, few virus, minimal plants, no fungi
-	1: [25, 8, 5, 8, 4],    # EARTH — moderate all
-	2: [40, 10, 8, 15, 6],  # GRASS — rich, lots of life
-	3: [35, 8, 6, 12, 10],  # WOOD — rich, lots of fungi/plants
-	4: [3, 2, 1, 0, 0],     # ROCK — almost sterile
+	0: [15, 5, 3, 1, 0],    # WATER
+	1: [25, 8, 4, 4, 3],    # EARTH
+	2: [40, 10, 6, 6, 4],   # GRASS — plant cap réduit pour éviter monopole
+	3: [35, 8, 5, 5, 8],    # WOOD — fungi dominant, plants limités
+	4: [3, 2, 1, 0, 0],     # ROCK
 }
 
 const BIOME_DEFAULTS: Dictionary = {

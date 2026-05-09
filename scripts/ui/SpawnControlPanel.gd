@@ -19,7 +19,7 @@ const SPAWN_SETTERS: Array[StringName] = [
 
 var _sim_renderer: Node = null
 var _territory_overlay: Node = null
-var _spawn_active: Array[bool] = [true, true, false, false, false]  # mirrors ChunkSpawner defaults
+var _spawn_active: Array[bool] = [true, true, true, true, true]  # mirrors ChunkSpawner defaults
 var _vis_active: Array[bool] = [true, true, true, true, true]
 var _terr_active: Array[bool] = [false, false, false, false, false]
 

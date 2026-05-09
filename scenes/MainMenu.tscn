@@ -1,0 +1,267 @@
+[gd_scene load_steps=3 format=3 uid="uid://mainmenu"]
+
+[ext_resource type="Script" path="res://scripts/ui/MainMenu.gd" id="1_mm"]
+[ext_resource type="Shader" path="res://shaders/menu_noise.gdshader" id="2_noise"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_noise"]
+shader = ExtResource("2_noise")
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_mm")
+
+[node name="BgRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.039, 0.039, 0.059, 1)
+
+[node name="NoiseOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+material = SubResource("ShaderMaterial_noise")
+color = Color(1, 1, 1, 1)
+
+[node name="RootFade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0)
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 0)
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "PRIMORDIA"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+theme_override_font_sizes/font_size = 52
+
+[node name="Subtitle" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "A living simulation"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.333, 0.333, 0.333, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="Spacer" type="Control" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 32)
+
+[node name="BtnNewGame" type="Button" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 44)
+text = "New Game"
+flat = false
+theme_override_colors/font_color = Color(0.93, 0.93, 0.93, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="BtnLoadGame" type="Button" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 44)
+text = "Load Game"
+flat = false
+theme_override_colors/font_color = Color(0.93, 0.93, 0.93, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="BtnSettings" type="Button" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 44)
+text = "Settings"
+flat = false
+theme_override_colors/font_color = Color(0.93, 0.93, 0.93, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Spacer2" type="Control" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 16)
+
+[node name="BtnQuit" type="Button" parent="Center/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 32)
+text = "Quit"
+flat = true
+theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="PanelNewGame" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -160.0
+offset_right = 200.0
+offset_bottom = 160.0
+visible = false
+
+[node name="VBox" type="VBoxContainer" parent="PanelNewGame"]
+layout_mode = 2
+theme_override_constants/separation = 16
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
+
+[node name="LabelTitle" type="Label" parent="PanelNewGame/VBox"]
+layout_mode = 2
+text = "New Game"
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="InputSaveName" type="LineEdit" parent="PanelNewGame/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+placeholder_text = "Save name..."
+theme_override_font_sizes/font_size = 15
+
+[node name="BtnCreate" type="Button" parent="PanelNewGame/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Create"
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="BtnCancel" type="Button" parent="PanelNewGame/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Cancel"
+flat = true
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="PanelLoad" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -280.0
+offset_right = 260.0
+offset_bottom = 280.0
+visible = false
+
+[node name="VBoxOuter" type="VBoxContainer" parent="PanelLoad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+offset_left = 32.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
+
+[node name="LabelTitle" type="Label" parent="PanelLoad/VBoxOuter"]
+layout_mode = 2
+text = "Load Game"
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+theme_override_font_sizes/font_size = 22
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelLoad/VBoxOuter"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NoSavesLabel" type="Label" parent="PanelLoad/VBoxOuter/ScrollContainer"]
+layout_mode = 2
+text = "No saves yet"
+theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)
+theme_override_font_sizes/font_size = 14
+visible = false
+
+[node name="SavesList" type="VBoxContainer" parent="PanelLoad/VBoxOuter/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BtnBack" type="Button" parent="PanelLoad/VBoxOuter"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Back"
+flat = true
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="PanelSettings" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -210.0
+offset_top = -180.0
+offset_right = 210.0
+offset_bottom = 180.0
+visible = false
+
+[node name="VBox" type="VBoxContainer" parent="PanelSettings"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="LabelTitle" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "Settings"
+theme_override_colors/font_color = Color(0.91, 0.91, 0.91, 1)
+theme_override_font_sizes/font_size = 20
+
+[node name="Sep" type="HSeparator" parent="PanelSettings/VBox"]
+layout_mode = 2
+
+[node name="LabelAutosaveTitle" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "Autosave interval"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="SliderAutosave" type="HSlider" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+min_value = 5.0
+max_value = 3600.0
+step = 1.0
+value = 300.0
+
+[node name="LabelInterval" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "5 min"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="LabelHint" type="Label" parent="PanelSettings/VBox"]
+layout_mode = 2
+text = "Applied to all new games"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.35, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="BtnSaveSettings" type="Button" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "Save Settings"
+theme_override_colors/font_color = Color(0.31, 0.76, 0.97, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="BtnBack" type="Button" parent="PanelSettings/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "Back"
+flat = true
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 13

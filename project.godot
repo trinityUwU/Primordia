@@ -12,11 +12,12 @@ config_version=5
 
 config/name="Primordia"
 config/features=PackedStringArray("4.2", "GL Compatibility")
-run/main_scene="res://scenes/World.tscn"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/icon="res://icon.svg"
 
 [autoload]
 
+SaveManager="*res://scripts/autoloads/SaveManager.gd"
 SimulationClock="*res://scripts/autoloads/SimulationClock.gd"
 WorldGrid="*res://scripts/autoloads/WorldGrid.gd"
 AgentPool="*res://scripts/managers/AgentPool.gd"

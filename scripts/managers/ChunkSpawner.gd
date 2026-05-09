@@ -12,9 +12,9 @@ var _camera_world_pos: Vector2 = Vector2.ZERO
 var _last_valid_camera_pos: Vector2 = Vector2.ZERO
 var spawn_bacteria_enabled: bool = true
 var spawn_virus_enabled: bool = true
-var spawn_protozoa_enabled: bool = false
-var spawn_plant_enabled: bool = false
-var spawn_fungi_enabled: bool = false
+var spawn_protozoa_enabled: bool = true
+var spawn_plant_enabled: bool = true
+var spawn_fungi_enabled: bool = true
 
 
 func _ready() -> void:
@@ -37,19 +37,19 @@ func _seed_world() -> void:
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		AgentPool.spawn_bacterium(pos.x, pos.y, _genome_for_biome(biome))
-	# Seed a few plants and fungi regardless of toggles
+	# Seed a few plants, fungi and protozoa
+	for _i in 4:
+		var pos: Vector2 = _random_spawn_pos()
+		AgentPool.spawn_protozoa(pos.x, pos.y)
 	for _i in 15:
 		var pos: Vector2 = _random_spawn_pos()
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
 		if biome != WorldGrid.BIOME_ROCK and biome != WorldGrid.BIOME_WATER:
 			AgentPool.spawn_plant(pos.x, pos.y)
-	for _i in 5:
+	for _i in 12:
 		var pos: Vector2 = _random_spawn_pos()
-		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
-		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		if biome != WorldGrid.BIOME_ROCK and biome != WorldGrid.BIOME_WATER:
-			AgentPool.spawn_fungi(pos.x, pos.y)
+		AgentPool.spawn_fungi(pos.x, pos.y)
 
 
 func _on_tick(tick: int) -> void:
