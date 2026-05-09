@@ -11,6 +11,9 @@ const CUSTOM_FUNGI: float = 7.0
 const CLUSTER_CELL_PX: float = 24.0
 const CLUSTER_THRESHOLD: int = 3
 
+# type index → visible (toggled from UI)
+var type_visible: Array[bool] = [true, true, true, true, true]
+
 var _multimesh: MultiMesh
 var _mmi: MultiMeshInstance2D
 var _shader_material: ShaderMaterial
@@ -20,6 +23,7 @@ var _current_cell_size: float = CLUSTER_CELL_PX
 
 
 func _ready() -> void:
+	add_to_group("sim_renderer")
 	_setup_multimesh()
 	_setup_shader()
 	_setup_tooltip()
@@ -105,6 +109,9 @@ func _build_clusters(cull_rect: Rect2, camera: Camera2D, cell_size: float) -> Di
 			if not AgentPool._spatial.has(spatial_cell):
 				continue
 			for i in AgentPool._spatial[spatial_cell]:
+				var t: int = AgentPool.agent_type[i]
+				if t < type_visible.size() and not type_visible[t]:
+					continue
 				var px: float = AgentPool.pos_x[i]
 				var py: float = AgentPool.pos_y[i]
 				var screen_pos: Vector2 = _world_to_screen(Vector2(px, py), camera)

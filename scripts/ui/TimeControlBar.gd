@@ -20,8 +20,8 @@ func _ready() -> void:
 
 
 func _on_tick(_tick: int) -> void:
-	_label_tick.text = "Tick: %d" % SimulationClock.tick_count
-	_label_time.text = "T: %s" % _format_sim_time(SimulationClock.elapsed_sim_time)
+	_label_tick.text = "T %d" % SimulationClock.tick_count
+	_label_time.text = _format_sim_time(SimulationClock.elapsed_sim_time)
 
 
 func _on_speed_changed(_new_speed: float) -> void:

@@ -7,7 +7,6 @@ var _zoom_level: int = 0
 var _render_fps_samples: Array[float] = []
 var _label_frame: int = 0
 
-# Per-second metrics (sampled every second of sim time)
 var _last_sample_sim_time: float = 0.0
 var _births_per_sec: float = 0.0
 var _deaths_per_sec: float = 0.0
@@ -51,52 +50,37 @@ func _process(delta: float) -> void:
 
 
 func _update_label() -> void:
-	var render_fps: float = _avg_fps()
-	var tick_rate_real: float = SimulationClock.get_sim_fps()
-	var mouse_grid: Vector2i = _get_mouse_grid_coords()
-	var counts: PackedInt32Array = AgentPool._type_counts
-	var heatmap_node: Node = get_tree().get_first_node_in_group("heatmap_overlay")
-	var heatmap_str: String = ""
-	if heatmap_node:
-		var hm := heatmap_node as Node
-		var lbl: Array[String] = ["OFF", "Nutrients", "Toxins", "Temperature"]
-		var m: int = hm.get("mode") if hm.get("mode") != null else 0
-		if m != 0:
-			heatmap_str = "\nHeatmap: " + lbl[m]
+	var fps: float = _avg_fps()
+	var tick_rate: float = SimulationClock.get_sim_fps()
+	var grid: Vector2i = _get_mouse_grid_coords()
+	var c: PackedInt32Array = AgentPool._type_counts
 	var net: float = _births_per_sec - _deaths_per_sec
-	var net_str: String = ("+%.1f" % net) if net >= 0.0 else ("%.1f" % net)
+	var net_s: String = ("+%.1f" % net) if net >= 0.0 else ("%.1f" % net)
+	var o2: float = _o2_produced_per_sec - _o2_consumed_per_sec
+	var o2_s: String = ("+%.3f" % o2) if o2 >= 0.0 else ("%.3f" % o2)
+
 	_label.text = (
-		"FPS: %d  Tick: %.1f/s\n"
-		+ "─── Population ───\n"
-		+ "Bacteria: %d\nVirus: %d\nProtozoa: %d\nPlants: %d\nFungi: %d\n"
-		+ "Total: %d  Virtual: %d\n"
-		+ "─── Flux /sec ───\n"
-		+ "Births: +%.1f  Deaths: -%.1f\n"
-		+ "Net: %s\n"
-		+ "─── O2 /sec ─────\n"
-		+ "Consumed: -%.4f\n"
-		+ "Produced: +%.4f\n"
-		+ "Balance: %s\n"
-		+ "─── Env ──────────\n"
-		+ "Zoom: %d  Grid: %d,%d%s"
+		"%d fps  %.0f t/s\n"
+		+ "Bact  %5d\n"
+		+ "Virus %5d\n"
+		+ "Proto %5d\n"
+		+ "Plant %5d\n"
+		+ "Fungi %5d\n"
+		+ "Live  %5d  +%d virt\n"
+		+ "Net  %s/s   O2 %s/s\n"
+		+ "%d,%d  z%d"
 	) % [
-		int(render_fps), tick_rate_real,
-		counts[AgentPool.TYPE_BACTERIUM],
-		counts[AgentPool.TYPE_VIRUS],
-		counts[AgentPool.TYPE_PROTOZOA],
-		counts[AgentPool.TYPE_PLANT],
-		counts[AgentPool.TYPE_FUNGI],
+		int(fps), tick_rate,
+		c[AgentPool.TYPE_BACTERIUM],
+		c[AgentPool.TYPE_VIRUS],
+		c[AgentPool.TYPE_PROTOZOA],
+		c[AgentPool.TYPE_PLANT],
+		c[AgentPool.TYPE_FUNGI],
 		AgentPool._alive_count,
 		PopulationLOD.get_total_aggregate_population(),
-		_births_per_sec, _deaths_per_sec,
-		net_str,
-		_o2_consumed_per_sec,
-		_o2_produced_per_sec,
-		("+%.4f" % (_o2_produced_per_sec - _o2_consumed_per_sec)) if (_o2_produced_per_sec - _o2_consumed_per_sec) >= 0.0 else ("%.4f" % (_o2_produced_per_sec - _o2_consumed_per_sec)),
-		_zoom_level, mouse_grid.x, mouse_grid.y,
-		heatmap_str,
+		net_s, o2_s,
+		grid.x, grid.y, _zoom_level,
 	]
-
 
 
 func _avg_fps() -> float:

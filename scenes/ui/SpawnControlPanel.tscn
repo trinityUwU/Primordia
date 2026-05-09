@@ -7,8 +7,8 @@ layout_mode = 3
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -200.0
-offset_bottom = 120.0
+offset_left = -140.0
+offset_bottom = 10.0
 mouse_filter = 2
 script = ExtResource("1_scp")
 
@@ -19,38 +19,89 @@ grow_horizontal = 0
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
+theme_override_constants/separation = 1
 
-[node name="Title" type="Label" parent="Panel/VBox"]
+[node name="TitleSpawn" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-text = "Spawn"
+text = "SPAWN"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 10
 
 [node name="BtnBacteria" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "● Bacteria"
 toggle_mode = true
 button_pressed = true
+theme_override_font_sizes/font_size = 11
 
 [node name="BtnVirus" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "● Virus"
 toggle_mode = true
 button_pressed = true
+theme_override_font_sizes/font_size = 11
 
 [node name="BtnProtozoa" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "○ Protozoa"
 toggle_mode = true
 button_pressed = false
+theme_override_font_sizes/font_size = 11
 
 [node name="BtnPlant" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "○ Plants"
 toggle_mode = true
 button_pressed = false
+theme_override_font_sizes/font_size = 11
 
 [node name="BtnFungi" type="Button" parent="Panel/VBox"]
 layout_mode = 2
 text = "○ Fungi"
 toggle_mode = true
 button_pressed = false
+theme_override_font_sizes/font_size = 11
+
+[node name="Sep" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="TitleFilter" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "FILTER"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 10
+
+[node name="VisBacteria" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "● Bacteria"
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 11
+
+[node name="VisVirus" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "● Virus"
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 11
+
+[node name="VisProtozoa" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "● Protozoa"
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 11
+
+[node name="VisPlant" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "● Plants"
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 11
+
+[node name="VisFungi" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "● Fungi"
+toggle_mode = true
+button_pressed = true
+theme_override_font_sizes/font_size = 11

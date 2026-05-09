@@ -63,7 +63,7 @@
 ### Rendu biomes
 - [x] Flat color par biome (fond coloré selon type de chunk)
 - [x] Shader texturing procédural par biome (grain, pattern, variation noise)
-- [ ] Transitions douces entre biomes (blend aux bordures de chunk)
+- [x] Transitions douces entre biomes (blend aux bordures de chunk)
 - [x] Overlay heatmap : nutrients / toxins / temperature (toggle)
 
 ### Éditeur in-game
@@ -84,7 +84,7 @@
 - [x] MAX_AGENTS dynamique (RAM-based) — calculé au démarrage, budget 4GB, ~20M max
 - [x] LOD simulation : PopulationLOD — zone active individus, hors zone = counts agrégés par chunk
 - [x] DensityFogRenderer : halos lumineux par chunk agrégé (1 quad/chunk, bloom shader)
-- [ ] Chunk data compression pour chunks inactifs
+- [x] Chunk data compression pour chunks inactifs
 
 ### Monde persistant
 - [x] Biomes persistants via _biome_map séparé, jamais evicté
@@ -106,9 +106,9 @@
 
 - [x] DensityFogRenderer : halos lumineux par chunk agrégé (1 quad/chunk, bloom shader)
 - [x] SimRenderer O(viewport) : spatial hash pour culling agents hors vue
-- [ ] Tooltip popup au hover sur zone de densité (stats du chunk agrégé : counts par type)
-- [ ] Zoom-LOD transition : fondu entre quads individuels et halo densité selon zoom level
-- [ ] Sélection d'entités individuelles à afficher par type depuis un menu (voir spec)
+- [x] Tooltip popup au hover sur zone de densité (stats du chunk agrégé : counts par type)
+- [x] Zoom-LOD transition : fondu entre quads individuels et halo densité selon zoom level
+- [x] Sélection d'entités individuelles à afficher par type depuis un menu (voir spec)
 
 ---
 

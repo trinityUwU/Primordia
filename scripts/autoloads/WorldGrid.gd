@@ -67,6 +67,7 @@ const CHUNK_TTL: float = 300.0
 var _chunks: Dictionary = {}            # Vector2i → { fields: {key: Array}, last_active: float }
 var _active_chunks: Array[Vector2i] = []
 var _biome_map: Dictionary = {}         # Vector2i → int — persistent, never evicted
+var _chunk_snapshots: Dictionary = {}   # Vector2i → {key: float} — compressed mean values for evicted chunks
 
 const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "temperature"]
 const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.06]
@@ -90,13 +91,15 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dic
 	# Use persisted biome if known, otherwise use provided default
 	var persisted: int = _biome_map.get(chunk_coord, biome)
 	biome = persisted
+	# Restore from snapshot if available (chunk was evicted with compressed state)
+	var snap: Dictionary = _chunk_snapshots.get(chunk_coord, {})
 	var defaults: Dictionary = BIOME_DEFAULTS[biome]
 	var fields: Dictionary = {}
 	var cells: int = CHUNK_SIZE * CHUNK_SIZE
 	for key in FIELD_KEYS:
 		var arr: Array[float] = []
 		arr.resize(cells)
-		arr.fill(defaults[key])
+		arr.fill(snap.get(key, defaults[key]))
 		fields[key] = arr
 	var buf: Dictionary = {}
 	for key in FIELD_KEYS:
@@ -106,6 +109,8 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dic
 		buf[key] = arr
 	var chunk: Dictionary = { "fields": fields, "_buf": buf, "biome": biome, "last_active": _wall_clock }
 	_chunks[chunk_coord] = chunk
+	if snap:
+		_chunk_snapshots.erase(chunk_coord)
 	return chunk
 
 
@@ -142,7 +147,22 @@ func _evict_stale_chunks() -> void:
 		if age > CHUNK_TTL:
 			to_remove.append(coord)
 	for coord in to_remove:
+		_snapshot_chunk(coord)
 		_chunks.erase(coord)
+
+
+func _snapshot_chunk(coord: Vector2i) -> void:
+	var chunk: Dictionary = _chunks[coord]
+	var fields: Dictionary = chunk["fields"]
+	var snap: Dictionary = {}
+	var cells: int = CHUNK_SIZE * CHUNK_SIZE
+	for key in FIELD_KEYS:
+		var arr: Array = fields[key]
+		var total: float = 0.0
+		for i in cells:
+			total += arr[i]
+		snap[key] = total / cells
+	_chunk_snapshots[coord] = snap
 
 
 # ── Coordinate helpers ────────────────────────────────────────────────────────
