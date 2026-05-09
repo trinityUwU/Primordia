@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://worldmain"]
+[gd_scene load_steps=14 format=3 uid="uid://worldmain"]
 
 [ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" uid="uid://heatmapoverlay" path="res://scenes/HeatmapOverlay.tscn" id="10_hm"]
 [ext_resource type="PackedScene" uid="uid://biomeeditor" path="res://scenes/ui/BiomeEditor.tscn" id="9_be"]
 [ext_resource type="PackedScene" uid="uid://densityfoglayer" path="res://scenes/DensityFogLayer.tscn" id="11_dfl"]
+[ext_resource type="PackedScene" uid="uid://territoryoverlay" path="res://scenes/TerritoryOverlay.tscn" id="12_to"]
+[ext_resource type="PackedScene" uid="uid://territoryinfopanel" path="res://scenes/ui/TerritoryInfoPanel.tscn" id="13_tip"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("5_shader")
@@ -41,6 +43,8 @@ size = Vector2(2048, 2048)
 
 [node name="AgentLayer" parent="." instance=ExtResource("6_agentlayer")]
 
+[node name="TerritoryOverlay" parent="." instance=ExtResource("12_to")]
+
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 10
 
@@ -51,3 +55,5 @@ layer = 10
 [node name="SpawnControlPanel" parent="UILayer" instance=ExtResource("7_scp")]
 
 [node name="BiomeEditor" parent="UILayer" instance=ExtResource("9_be")]
+
+[node name="TerritoryInfoPanel" parent="UILayer" instance=ExtResource("13_tip")]

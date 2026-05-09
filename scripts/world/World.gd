@@ -9,12 +9,26 @@ var _grid_visible: bool = false
 @onready var _camera: Camera2D = $Camera2D
 @onready var _grid_renderer: Node2D = $GridRenderer
 @onready var _debug_overlay: Control = $UILayer/DebugOverlay
+@onready var _territory_overlay: Node2D = $TerritoryOverlay
+@onready var _territory_info: Control = $UILayer/TerritoryInfoPanel
 
 
 func _ready() -> void:
 	_grid_renderer.visible = false
 	_debug_overlay.visible = false
 	_camera.zoom_level_changed.connect(_on_zoom_level_changed)
+	_territory_overlay.territory_clicked.connect(_on_territory_clicked)
+
+
+func _on_territory_clicked(chunk_coord: Vector2i, agents: Array[int]) -> void:
+	var cull_rect: Rect2 = _get_camera_world_rect()
+	_territory_info.show_for_chunk(chunk_coord, agents, cull_rect)
+
+
+func _get_camera_world_rect() -> Rect2:
+	var vp_size: Vector2 = get_viewport().get_visible_rect().size
+	var half: Vector2 = vp_size * 0.5 / _camera.zoom
+	return Rect2(_camera.global_position - half, half * 2.0)
 
 
 func _on_zoom_level_changed(level: int) -> void:

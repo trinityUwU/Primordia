@@ -63,7 +63,7 @@
 ### Rendu biomes
 - [x] Flat color par biome (fond coloré selon type de chunk)
 - [x] Shader texturing procédural par biome (grain, pattern, variation noise)
-- [x] Transitions douces entre biomes (blend aux bordures de chunk)
+- [x] Transitions douces entre biomes (Voronoi jitter par chunk — seam-free, organique)
 - [x] Overlay heatmap : nutrients / toxins / temperature (toggle)
 
 ### Éditeur in-game

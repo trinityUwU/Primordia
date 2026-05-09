@@ -10,6 +10,8 @@ const CUSTOM_PLANT: float = 6.0
 const CUSTOM_FUNGI: float = 7.0
 const CLUSTER_CELL_PX: float = 24.0
 const CLUSTER_THRESHOLD: int = 3
+const ZOOM_SHOW_AGENTS: float = 0.8   # zoom minimum pour afficher les agents individuels
+const MAX_VISIBLE_AGENTS: int = 1000  # cap d'agents affichés à l'écran
 
 # type index → visible (toggled from UI)
 var type_visible: Array[bool] = [true, true, true, true, true]
@@ -71,6 +73,11 @@ func _process(_delta: float) -> void:
 	_cluster_tooltip.clear()
 	var alive: int = AgentPool._alive_count
 	var zoom: float = camera.zoom.x
+
+	# Hide all agents when zoomed out — territory overlay takes over
+	if zoom < ZOOM_SHOW_AGENTS:
+		_multimesh.visible_instance_count = 0
+		return
 	var dynamic_cell: float = CLUSTER_CELL_PX
 	if alive > 5000:
 		dynamic_cell = CLUSTER_CELL_PX * (1.0 + float(alive - 5000) / 5000.0)
@@ -147,6 +154,8 @@ func _fill_instances(cull_rect: Rect2, camera: Camera2D, cell_size: float) -> in
 	var cells: Dictionary = _build_clusters(cull_rect, camera, cell_size)
 	var slot: int = 0
 	for cell in cells:
+		if slot >= MAX_VISIBLE_AGENTS:
+			break
 		var indices: Array = cells[cell]
 		if indices.size() <= CLUSTER_THRESHOLD:
 			slot = _write_individual_agents(indices, slot)

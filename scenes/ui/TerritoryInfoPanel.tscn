@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://territoryinfopanel"]
+
+[ext_resource type="Script" path="res://scripts/ui/TerritoryInfoPanel.gd" id="1_tip"]
+
+[node name="TerritoryInfoPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_tip")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_right = 180.0
+offset_bottom = 120.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+text = "Chunk (0, 0)"
+add_theme_font_size_override/font_size = 11
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+
+[node name="Counts" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Sep" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="BtnClose" type="Button" parent="Panel/VBox"]
+layout_mode = 2
+text = "Close"
+theme_override_font_sizes/font_size = 11

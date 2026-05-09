@@ -8,6 +8,14 @@ uniform vec2  vp_size;
 uniform float tex_size;
 uniform vec2  tex_origin;
 
+// Per-chunk deterministic jitter — same result regardless of which neighbor computes it
+vec2 chunk_jitter(ivec2 c) {
+	vec2 cf = vec2(c);
+	float h1 = fract(sin(dot(cf, vec2(127.1, 311.7))) * 43758.5453);
+	float h2 = fract(sin(dot(cf, vec2(269.5,  183.3))) * 43758.5453);
+	return (vec2(h1, h2) - 0.5) * 0.7; // jitter within ~35% of chunk radius
+}
+
 float hash(vec2 p) {
 	p = fract(p * vec2(127.1, 311.7));
 	p += dot(p, p + 34.23);
@@ -35,49 +43,35 @@ vec3 biome_color(float b_norm) {
 }
 
 void fragment() {
-	// UV = 0..1 over the full ColorRect = full screen
 	vec2 world_pos = cam_pos + (UV - vec2(0.5)) * vp_size / zoom;
+	vec2 chunk_f   = world_pos / chunk_px;
+	ivec2 base     = ivec2(floor(chunk_f));
+	int   ts       = int(tex_size);
 
-	// Continuous chunk position
-	vec2 chunk_f = world_pos / chunk_px;
+	// Voronoi over 3x3 neighborhood — closest jittered center wins
+	float min_dist   = 1e9;
+	float win_biome  = 0.0;
 
-	// Local position within the chunk [0,1)
-	vec2 local = chunk_f - floor(chunk_f);
+	for (int dy = -1; dy <= 1; dy++) {
+		for (int dx = -1; dx <= 1; dx++) {
+			ivec2 nc     = base + ivec2(dx, dy);
+			ivec2 tc     = clamp(nc - ivec2(tex_origin), ivec2(0), ivec2(ts - 1));
+			float biome  = texelFetch(biome_tex, tc, 0).r;
 
-	// Snap to pixel center — avoids linear bleeding regardless of filter mode
-	vec2 pixel_idx = floor(chunk_f - tex_origin);
-	float s = 1.0 / tex_size;
-	vec2 tc = (pixel_idx + 0.5) * s;  // center of the pixel
-
-	float b_self  = texture(biome_tex, tc).r;
-	float b_north = texture(biome_tex, tc + vec2(0.0,  -s)).r;
-	float b_south = texture(biome_tex, tc + vec2(0.0,   s)).r;
-	float b_west  = texture(biome_tex, tc + vec2( -s, 0.0)).r;
-	float b_east  = texture(biome_tex, tc + vec2(  s, 0.0)).r;
+			// Center of this chunk in chunk-space, plus jitter
+			vec2 center  = vec2(nc) + 0.5 + chunk_jitter(nc);
+			float d      = distance(chunk_f, center);
+			if (d < min_dist) {
+				min_dist   = d;
+				win_biome  = biome;
+			}
+		}
+	}
 
 	float n1 = noise(world_pos / 48.0) * 0.06;
 	float n2 = noise(world_pos / 12.0) * 0.03;
 	float n3 = noise(world_pos / 4.0)  * 0.015;
 	float nv = n1 + n2 + n3 - 0.05;
 
-	float disp = noise(world_pos / 22.0) * 0.09 - 0.045;
-	const float BW = 0.15;
-
-	vec3 col = clamp(biome_color(b_self) + nv, 0.0, 1.0);
-
-	float t_n = clamp((BW - local.y  + disp) / BW, 0.0, 1.0);
-	float t_s = clamp((local.y  - (1.0 - BW) + disp) / BW, 0.0, 1.0);
-	float t_w = clamp((BW - local.x  + disp) / BW, 0.0, 1.0);
-	float t_e = clamp((local.x  - (1.0 - BW) + disp) / BW, 0.0, 1.0);
-
-	if (abs(b_north - b_self) > 0.01 && t_n > 0.0)
-		col = mix(col, clamp(biome_color(b_north) + nv, 0.0, 1.0), t_n);
-	if (abs(b_south - b_self) > 0.01 && t_s > 0.0)
-		col = mix(col, clamp(biome_color(b_south) + nv, 0.0, 1.0), t_s);
-	if (abs(b_west  - b_self) > 0.01 && t_w > 0.0)
-		col = mix(col, clamp(biome_color(b_west)  + nv, 0.0, 1.0), t_w);
-	if (abs(b_east  - b_self) > 0.01 && t_e > 0.0)
-		col = mix(col, clamp(biome_color(b_east)  + nv, 0.0, 1.0), t_e);
-
-	COLOR = vec4(col, 1.0);
+	COLOR = vec4(clamp(biome_color(win_biome) + nv, 0.0, 1.0), 1.0);
 }
