@@ -93,7 +93,7 @@ func _process(_delta: float) -> void:
 func _get_cull_rect(camera: Camera2D) -> Rect2:
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	var half: Vector2 = vp_size * 0.5 / camera.zoom
-	return Rect2(camera.global_position - half, half * 2.0).grow(50.0)
+	return Rect2(camera.global_position - half, half * 2.0).abs().grow(50.0)
 
 
 func _world_to_screen(world_pos: Vector2, camera: Camera2D) -> Vector2:

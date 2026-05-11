@@ -46,7 +46,7 @@ func _setup_zoom() -> void:
 
 func _process(delta: float) -> void:
 	var current_zoom: float = zoom.x
-	var new_zoom: float = lerpf(current_zoom, _target_zoom, ZOOM_SPEED * delta)
+	var new_zoom: float = maxf(lerpf(current_zoom, _target_zoom, ZOOM_SPEED * delta), ZOOM_MIN)
 	if abs(new_zoom - zoom.x) > 0.000001:
 		zoom = Vector2(new_zoom, new_zoom)
 		zoom_changed.emit(new_zoom)
