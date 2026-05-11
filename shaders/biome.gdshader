@@ -14,23 +14,27 @@ uniform float noise_hum_freq;
 
 // ── Hashing / noise ──────────────────────────────────────────────────────────
 
-vec2 chunk_jitter(ivec2 c) {
-	vec2 cf = vec2(c);
-	float h1 = fract(sin(dot(cf, vec2(127.1, 311.7))) * 43758.5453);
-	float h2 = fract(sin(dot(cf, vec2(269.5,  183.3))) * 43758.5453);
-	return (vec2(h1, h2) - 0.5) * 0.65;
-}
-
+// High-quality hash — no sin(), no repetition artifacts at large coords
 float hash(vec2 p) {
-	p = fract(p * vec2(127.1, 311.7));
-	p += dot(p, p + 34.23);
+	p = fract(p * vec2(443.897, 441.423));
+	p += dot(p, p + 19.19);
 	return fract(p.x * p.y);
 }
 
+vec2 hash2(vec2 p) {
+	p = fract(p * vec2(443.897, 441.423));
+	p += dot(p, p + 19.19);
+	return fract(vec2(p.x * p.y, p.y * p.x + 0.31));
+}
+
 float hash3(vec3 p) {
-	p = fract(p * vec3(127.1, 311.7, 74.7));
-	p += dot(p, p + 34.23);
+	p = fract(p * vec3(443.897, 441.423, 437.195));
+	p += dot(p, p + 19.19);
 	return fract(p.x * p.y * p.z);
+}
+
+vec2 chunk_jitter(ivec2 c) {
+	return (hash2(vec2(c) + world_seed_f * 0.00001) - 0.5) * 0.7;
 }
 
 float noise(vec2 p) {
@@ -149,23 +153,26 @@ vec3 get_biome_color(int b, vec2 wp) {
 // ── Procedural biome from world noise (macro LOD — no texture) ──────────────
 
 // Smooth value noise seeded by world_seed_f offset
+// Value noise with domain-warped seed offset — no repetition artifacts
 float snoise(vec2 p, float seed_off) {
-	p += vec2(seed_off * 0.001, seed_off * 0.0013);
+	// Domain warp: shift p by a hash of the seed to break any grid alignment
+	vec2 warp = hash2(vec2(seed_off * 0.037, seed_off * 0.073)) * 100.0;
+	p += warp;
 	vec2 i = floor(p);
 	vec2 f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(
-		mix(hash(i + vec2(0,0) + seed_off * 0.1),
-		    hash(i + vec2(1,0) + seed_off * 0.1), f.x),
-		mix(hash(i + vec2(0,1) + seed_off * 0.1),
-		    hash(i + vec2(1,1) + seed_off * 0.1), f.x),
+		mix(hash(i),              hash(i + vec2(1,0)), f.x),
+		mix(hash(i + vec2(0,1)),  hash(i + vec2(1,1)), f.x),
 		f.y);
 }
 
-// 2-octave noise — cheap, sufficient for biome shape at macro zoom
+// 3-octave fbm for biome shapes — enough variation without repetition
 float macro_noise(vec2 world_chunk, float freq, float seed_off) {
 	vec2 p = world_chunk * freq;
-	float v = snoise(p, seed_off) * 0.6 + snoise(p * 2.1, seed_off + 37.0) * 0.4;
+	float v  = snoise(p,         seed_off)        * 0.50;
+	      v += snoise(p * 2.13,  seed_off + 47.3) * 0.30;
+	      v += snoise(p * 4.57,  seed_off + 91.7) * 0.20;
 	return clamp(v, 0.0, 1.0);
 }
 

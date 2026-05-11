@@ -47,7 +47,10 @@ func _setup_zoom() -> void:
 func _process(delta: float) -> void:
 	var current_zoom: float = zoom.x
 	var new_zoom: float = maxf(lerpf(current_zoom, _target_zoom, ZOOM_SPEED * delta), ZOOM_MIN)
-	if abs(new_zoom - zoom.x) > 0.000001:
+	# Snap to target when close enough to avoid infinite lerp drift
+	if abs(new_zoom - _target_zoom) < _target_zoom * 0.0005:
+		new_zoom = _target_zoom
+	if new_zoom != zoom.x:
 		zoom = Vector2(new_zoom, new_zoom)
 		zoom_changed.emit(new_zoom)
 	_handle_wasd(delta)
