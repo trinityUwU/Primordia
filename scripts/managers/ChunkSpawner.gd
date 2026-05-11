@@ -89,7 +89,7 @@ func _maybe_spawn() -> void:
 			continue
 		var chunk_coord: Vector2i = WorldGrid.world_to_chunk(pos)
 		var biome: int = WorldGrid.get_chunk_biome(chunk_coord)
-		if spawn_protozoa_enabled and randf() < 0.12 and AgentPool._type_counts[AgentPool.TYPE_BACTERIUM] > 200:
+		if spawn_protozoa_enabled and randf() < 0.25 and AgentPool._type_counts[AgentPool.TYPE_BACTERIUM] > 50:
 			AgentPool.spawn_protozoa(pos.x, pos.y)
 		elif spawn_plant_enabled and _can_spawn_plant_at(pos) and randf() < 0.40:
 			AgentPool.spawn_plant(pos.x, pos.y)
@@ -172,7 +172,7 @@ func _genome_for_biome(biome: int) -> Dictionary:
 		WorldGrid.BIOME_GRASS:
 			return { "gram_positive": true, "metabolism": 0.025, "move_speed": 35.0 }
 		WorldGrid.BIOME_WOOD:
-			return { "gram_positive": true, "metabolism": 0.018, "division_threshold": 0.9 }
+			return { "gram_positive": true, "metabolism": 0.018, "division_threshold": 1.6 }
 		_:
 			return {}
 

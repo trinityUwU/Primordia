@@ -69,6 +69,7 @@ const CHUNK_TTL: float = 300.0
 var _chunks: Dictionary = {}            # Vector2i → { fields: {key: Array}, last_active: float }
 var _active_chunks: Array[Vector2i] = []
 var _biome_map: Dictionary = {}         # Vector2i → int — persistent, never evicted
+var _biome_overrides: Dictionary = {}   # Vector2i → int — manually painted chunks only (saved to disk)
 var _chunk_snapshots: Dictionary = {}   # Vector2i → {key: float} — compressed mean values for evicted chunks
 
 const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "temperature"]
@@ -86,22 +87,28 @@ func _ready() -> void:
 
 # ── Chunk management ─────────────────────────────────────────────────────────
 
-func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dictionary:
+func get_or_create_chunk(chunk_coord: Vector2i, biome: int = -1) -> Dictionary:
 	if _chunks.has(chunk_coord):
 		_chunks[chunk_coord]["last_active"] = _wall_clock
 		return _chunks[chunk_coord]
-	# Use persisted biome if known, otherwise use provided default
-	var persisted: int = _biome_map.get(chunk_coord, biome)
-	biome = persisted
-	# Restore from snapshot if available (chunk was evicted with compressed state)
+
+	# Determine biome: persisted > provided > procedural
+	var resolved_biome: int
+	if _biome_map.has(chunk_coord):
+		resolved_biome = _biome_map[chunk_coord]
+	elif biome >= 0:
+		resolved_biome = biome
+	else:
+		resolved_biome = WorldGen.get_biome(chunk_coord)
+		_biome_map[chunk_coord] = resolved_biome
+
 	var snap: Dictionary = _chunk_snapshots.get(chunk_coord, {})
-	var defaults: Dictionary = BIOME_DEFAULTS[biome]
-	var fields: Dictionary = {}
 	var cells: int = CHUNK_SIZE * CHUNK_SIZE
+	var fields: Dictionary = {}
 	for key in FIELD_KEYS:
 		var arr: Array[float] = []
 		arr.resize(cells)
-		arr.fill(snap.get(key, defaults[key]))
+		arr.fill(0.0)
 		fields[key] = arr
 	var buf: Dictionary = {}
 	for key in FIELD_KEYS:
@@ -109,15 +116,24 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = BIOME_EARTH) -> Dic
 		arr.resize(cells)
 		arr.fill(0.0)
 		buf[key] = arr
-	var chunk: Dictionary = { "fields": fields, "_buf": buf, "biome": biome, "last_active": _wall_clock }
-	_chunks[chunk_coord] = chunk
+
 	if snap:
+		# Restore evicted chunk from snapshot means
+		for key in FIELD_KEYS:
+			fields[key].fill(snap.get(key, BIOME_DEFAULTS[resolved_biome].get(key, 0.0)))
 		_chunk_snapshots.erase(chunk_coord)
+	else:
+		# Fresh chunk — procedural generation
+		WorldGen.generate_chunk_fields(chunk_coord, resolved_biome, fields)
+
+	var chunk: Dictionary = { "fields": fields, "_buf": buf, "biome": resolved_biome, "last_active": _wall_clock }
+	_chunks[chunk_coord] = chunk
 	return chunk
 
 
 func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
-	_biome_map[chunk_coord] = biome  # persist forever
+	_biome_map[chunk_coord] = biome
+	_biome_overrides[chunk_coord] = biome  # mark as manual override → saved to disk
 	var chunk: Dictionary = get_or_create_chunk(chunk_coord, biome)
 	chunk["biome"] = biome
 	var defaults: Dictionary = BIOME_DEFAULTS[biome]
@@ -128,7 +144,9 @@ func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
 
 
 func get_chunk_biome(chunk_coord: Vector2i) -> int:
-	return _biome_map.get(chunk_coord, BIOME_EARTH)
+	if not _biome_map.has(chunk_coord):
+		_biome_map[chunk_coord] = WorldGen.get_biome(chunk_coord)
+	return _biome_map[chunk_coord]
 
 
 func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) -> void:

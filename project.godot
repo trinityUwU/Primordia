@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SaveManager="*res://scripts/autoloads/SaveManager.gd"
 SimulationClock="*res://scripts/autoloads/SimulationClock.gd"
+WorldGen="*res://scripts/autoloads/WorldGen.gd"
 WorldGrid="*res://scripts/autoloads/WorldGrid.gd"
 AgentPool="*res://scripts/managers/AgentPool.gd"
 ChunkSpawner="*res://scripts/managers/ChunkSpawner.gd"

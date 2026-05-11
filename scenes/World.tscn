@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://worldmain"]
+[gd_scene load_steps=17 format=3 uid="uid://worldmain"]
 
 [ext_resource type="Script" path="res://scripts/world/World.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/WorldCamera.gd" id="2_cam"]
@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" uid="uid://territoryinfopanel" path="res://scenes/ui/TerritoryInfoPanel.tscn" id="13_tip"]
 [ext_resource type="PackedScene" uid="uid://ingamehud" path="res://scenes/ui/InGameHUD.tscn" id="14_hud"]
 [ext_resource type="PackedScene" uid="uid://pausemenu" path="res://scenes/ui/PauseMenu.tscn" id="15_pm"]
+[ext_resource type="PackedScene" uid="uid://scalebar" path="res://scenes/ui/ScaleBar.tscn" id="16_sb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_grid"]
 shader = ExtResource("5_shader")
@@ -59,6 +60,8 @@ layer = 10
 [node name="BiomeEditor" parent="UILayer" instance=ExtResource("9_be")]
 
 [node name="TerritoryInfoPanel" parent="UILayer" instance=ExtResource("13_tip")]
+
+[node name="ScaleBar" parent="UILayer" instance=ExtResource("16_sb")]
 
 [node name="InGameHUD" parent="." instance=ExtResource("14_hud")]
 

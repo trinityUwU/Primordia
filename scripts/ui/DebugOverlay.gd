@@ -3,7 +3,7 @@ extends Control
 @onready var _label: Label = $Panel/VBox/Label
 
 var _camera: Camera2D
-var _zoom_level: int = 0
+var _zoom_value: float = 1.0
 var _render_fps_samples: Array[float] = []
 var _label_frame: int = 0
 
@@ -56,8 +56,8 @@ func _update_label() -> void:
 	var c: PackedInt32Array = AgentPool._type_counts
 	var net: float = _births_per_sec - _deaths_per_sec
 	var net_s: String = ("+%.1f" % net) if net >= 0.0 else ("%.1f" % net)
-	var o2_net: float = _o2_produced_per_sec - _o2_consumed_per_sec
-	var o2_s: String = ("+%.3f" % o2_net) if o2_net >= 0.0 else ("%.3f" % o2_net)
+	var o2_delta: float = _o2_produced_per_sec - _o2_consumed_per_sec
+	var o2_s: String = ("+%.3f" % o2_delta) if o2_delta >= 0.0 else ("%.3f" % o2_delta)
 	# Sample local O2 and CO2 at mouse position
 	var o2_local: float = 0.21
 	var co2_local: float = 0.04
@@ -75,9 +75,9 @@ func _update_label() -> void:
 		+ "Plant %5d\n"
 		+ "Fungi %5d\n"
 		+ "Live  %5d  +%d virt\n"
-		+ "Net  %s/s   O2 %s/s\n"
+		+ "Net  %s/s   O2Δ %s\n"
 		+ "O2 %.2f  CO2 %.2f\n"
-		+ "%d,%d  z%d"
+		+ "%d,%d  z%.4f"
 	) % [
 		int(fps), tick_rate,
 		c[AgentPool.TYPE_BACTERIUM],
@@ -89,7 +89,7 @@ func _update_label() -> void:
 		PopulationLOD.get_total_aggregate_population(),
 		net_s, o2_s,
 		o2_local, co2_local,
-		grid.x, grid.y, _zoom_level,
+		grid.x, grid.y, _zoom_value,
 	]
 
 
@@ -113,4 +113,7 @@ func _get_mouse_grid_coords() -> Vector2i:
 
 
 func set_zoom_level(level: int) -> void:
-	_zoom_level = level
+	pass  # kept for compatibility
+
+func set_zoom_value(z: float) -> void:
+	_zoom_value = z

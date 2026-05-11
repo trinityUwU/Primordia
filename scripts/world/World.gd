@@ -18,6 +18,7 @@ func _ready() -> void:
 	_grid_renderer.visible = false
 	_debug_overlay.visible = false
 	_camera.zoom_level_changed.connect(_on_zoom_level_changed)
+	_camera.zoom_changed.connect(func(z: float): _debug_overlay.set_zoom_value(z))
 	_territory_overlay.territory_clicked.connect(_on_territory_clicked)
 	SaveManager.autosave_triggered.connect(_on_autosave_triggered)
 

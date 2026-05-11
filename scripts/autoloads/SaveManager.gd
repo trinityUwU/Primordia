@@ -67,6 +67,7 @@ func new_save(name: String) -> String:
 		"playtime": 0,
 		"autosave_interval": interval,
 		"emergence_mode": false,
+		"world_seed": WorldGen.world_seed,
 	}
 	_write_json(SAVES_DIR + slot_id + "/meta.json", meta)
 	return slot_id
@@ -86,6 +87,9 @@ func load_save(slot_id: String) -> bool:
 	_last_save_time = _session_start_time
 	var interval: int = meta.get("autosave_interval", DEFAULT_AUTOSAVE_INTERVAL)
 	_start_autosave_timer(interval)
+	var seed_val: int = int(meta.get("world_seed", 0))
+	if seed_val != 0:
+		WorldGen.set_seed(seed_val)
 	var emergence: bool = bool(meta.get("emergence_mode", false))
 	var spawner: Node = _get_chunk_spawner()
 	if spawner != null:
@@ -177,20 +181,24 @@ func _compute_total_playtime() -> int:
 
 
 func _serialize_biome_map() -> Dictionary:
+	# Only save manual overrides — procedural biomes are regenerated from world_seed
 	var result: Dictionary = {}
-	for coord: Vector2i in WorldGrid._biome_map.keys():
-		result["%d,%d" % [coord.x, coord.y]] = WorldGrid._biome_map[coord]
+	for coord: Vector2i in WorldGrid._biome_overrides.keys():
+		result["%d,%d" % [coord.x, coord.y]] = WorldGrid._biome_overrides[coord]
 	return result
 
 
 func _deserialize_biome_map(data: Dictionary) -> void:
 	WorldGrid._biome_map.clear()
+	WorldGrid._biome_overrides.clear()
 	for key: String in data.keys():
 		var parts: PackedStringArray = key.split(",")
 		if parts.size() != 2:
 			continue
 		var coord: Vector2i = Vector2i(int(parts[0]), int(parts[1]))
-		WorldGrid._biome_map[coord] = int(data[key])
+		var biome: int = int(data[key])
+		WorldGrid._biome_map[coord] = biome
+		WorldGrid._biome_overrides[coord] = biome
 
 
 func _read_meta(slot_id: String) -> Dictionary:

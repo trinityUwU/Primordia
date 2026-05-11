@@ -468,7 +468,7 @@ func _tick_bacterium(i: int) -> void:
 	var toxins: float = WorldGrid.get_cell_value(gx, gy, "toxins")
 	var o2: float = WorldGrid.get_cell_value(gx, gy, "oxygen")
 	# Toxin stress: progressive damage above threshold
-	if toxins > 0.4 and randf() < (toxins - 0.4) * 0.18:
+	if toxins > 0.3 and randf() < (toxins - 0.3) * 0.30:
 		kill(i)
 		return
 	# Hypoxia: O2 critically low (below minimum viable = 0.10)
@@ -564,7 +564,7 @@ func _consume_nutrients(i: int) -> void:
 	# Toxin production — scales with uptake, creates density pressure
 	var tox: float = WorldGrid.get_cell_value(gx, gy, "toxins")
 	WorldGrid.set_cell_value(gx, gy, "toxins", minf(tox + uptake * 0.4, 1.0))
-	energy[i] = minf(energy[i] + uptake * 1.2, 2.0)
+	energy[i] = minf(energy[i] + uptake * 0.9, 2.0)
 
 
 func _check_sporulation(i: int) -> void:

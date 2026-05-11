@@ -20,8 +20,8 @@ func _ready() -> void:
 
 
 func _on_tick(_tick: int) -> void:
-	_label_tick.text = "T %d" % SimulationClock.tick_count
-	_label_time.text = _format_sim_time(SimulationClock.elapsed_sim_time)
+	_label_tick.text = ""
+	_label_time.text = "%s  (T%d)" % [SimulationClock.format_date_short(), SimulationClock.tick_count]
 
 
 func _on_speed_changed(_new_speed: float) -> void:
@@ -45,14 +45,10 @@ func _on_faster_pressed() -> void:
 
 
 func _refresh_speed_label() -> void:
-	_label_speed.text = "x%.2f" % SimulationClock.speed_multiplier
+	_label_speed.text = SimulationClock.get_speed_label()
 
 
 func _refresh_pause_label() -> void:
 	_btn_pause.text = "▶" if SimulationClock.paused else "⏸"
 
 
-func _format_sim_time(seconds: float) -> String:
-	var mins: int = int(seconds) / 60
-	var secs: int = int(seconds) % 60
-	return "%02d:%02d" % [mins, secs]

@@ -1,5 +1,5 @@
 # TODO.md — Primordia
-> Mise à jour : 2026-05-09 | Légende : [ ] todo · [x] done · [~] en cours · [!] bloqué
+> Mise à jour : 2026-05-11 | Légende : [ ] todo · [x] done · [~] en cours · [!] bloqué
 
 ---
 
@@ -70,6 +70,62 @@
 - [x] Outil peinture : sélectionner un biome et peindre des chunks au clic
 - [x] UI palette biomes (panneau latéral gauche)
 - [x] Raccourci clavier pour activer/désactiver le mode éditeur
+
+---
+
+## Phase 3e — Génération Procédurale de Monde 🔜 PRIORITÉ 1
+
+### WorldGen — génération à la volée par chunk
+- [ ] `WorldGen` autoload : génère un chunk à partir de ses coordonnées (seed mondial déterministe)
+- [ ] Noise multi-octave (FastNoiseLite Godot) : altitude, humidité, température — chaque couche indépendante
+- [ ] Biome assignment depuis altitude + humidité + température :
+  - altitude > 0.75 → ROCK
+  - altitude < 0.25 → WATER (océan)
+  - humidité > 0.7 + altitude 0.3-0.6 → WOOD
+  - humidité 0.3-0.7 → GRASS
+  - humidité < 0.3 → EARTH (désert/plaine)
+- [ ] Initialisation cohérente des champs chimiques selon biome généré
+- [ ] Continuité inter-chunks : le noise est mondial (coordonnées chunk × chunk_size = seed position)
+- [ ] Remplacement du BiomeEditor comme seule source de vérité → génération automatique à la création du chunk
+- [ ] Option "regenerate world" depuis le menu (nouvelle seed)
+
+### Macro-structures procédurales
+- [ ] Rivières : pathfinding descente d'altitude → trace de chunks WATER entre montagnes et océan
+- [ ] Montagnes : clusters ROCK cohérents avec transition GRASS → WOOD → ROCK selon altitude
+- [ ] Forêts : clusters WOOD avec densité noise, lisières naturelles
+- [ ] Conditions d'habitabilité par zone : température + humidité + nutriments → score propice par espèce
+  - Zones propices → spawn naturel favorisé pour espèces compatibles (fourmis en terre sèche, champignons en forêt humide, etc.)
+
+---
+
+## Phase 3f — Layers Écologiques 🔜 PRIORITÉ 2
+
+### Système de layers
+- [ ] 4 layers : `ATMOSPHERE`, `SURFACE`, `SOIL`, `UNDERGROUND`
+- [ ] Chaque chunk stocke des champs chimiques par layer (oxygen/humidity dans ATMOSPHERE, nutrients/pH dans SOIL, etc.)
+- [ ] Agents ont un `layer` dans AgentPool — tick uniquement dans leur layer actif
+- [ ] Migration inter-layers : spores → ATMOSPHERE, fungi hyphes → SOIL, bactéries sol ↔ surface selon humidité
+- [ ] ChunkSpawner génère par layer selon conditions
+- [ ] Touche dédiée pour switcher de layer (ex: Tab) — transition visuelle fondu
+
+### Champs par layer
+- ATMOSPHERE : oxygen, co2, humidity, spore_density, temperature (aérien)
+- SURFACE : nutrients, water, toxins, temperature, light (actuel)
+- SOIL : nutrients, water, pH, minerals, organic_matter
+- UNDERGROUND : minerals, pressure, temperature, water (nappe)
+
+---
+
+## Phase 3g — DA Refonte Shaders 🔜 PRIORITÉ 3
+
+### Style Factorio-inspired : lisible, organique, informatif
+- [ ] Biome shader : noise de détail par biome (grain sable, fibres herbe, écorce bois, mousse roche)
+- [ ] Variations subtiles de teinte intra-biome (pas flat color)
+- [ ] Transitions biomes : blend sur 2-3 cells au lieu de frontière dure
+- [ ] Eau : profondeur simulée (plus sombre au centre), reflets dynamiques améliorés
+- [ ] Éclairage ambiant : light venant du layer ATMOSPHERE (luminosité solaire selon heure simulée)
+- [ ] Agents : formes procédurales selon type (cocci/bacille/spirille pour bactéries) — voir Phase 4
+- [ ] Palette cohérente par biome — chaque biome a une identité visuelle reconnaissable instantanément
 
 ---
 
