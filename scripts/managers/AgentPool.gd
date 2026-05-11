@@ -417,9 +417,7 @@ func get_agents_in_radius(px: float, py: float, radius: float) -> PackedInt32Arr
 
 
 func _process(_delta: float) -> void:
-	if _needs_compact:
-		compact_dead()
-		_needs_compact = false
+	pass  # compact runs on tick, not every frame
 
 
 func _on_tick(tick: int) -> void:
@@ -435,10 +433,11 @@ func _on_tick(tick: int) -> void:
 			TICK_STRIDE = 3
 		else:
 			TICK_STRIDE = 2
-	if tick % 2 == 0:
+	if tick % 5 == 0:
 		_rebuild_spatial()
+	if tick % 30 == 0:
+		compact_dead()
 	_process_agents(tick)
-	_needs_compact = true
 	_dirty = true
 
 

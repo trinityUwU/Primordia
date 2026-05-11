@@ -201,7 +201,7 @@ void fragment() {
 
 	vec3 final_color;
 
-	if (wu_per_px > 4.0) {
+	if (wu_per_px > 1.0) {
 		// Macro-LOD: single biome_from_noise call — 2 noise lookups total, zero texture
 		int b = biome_from_noise(chunk_f);
 		// Cheap border softening via offset sample (no Voronoi loop)
@@ -213,14 +213,13 @@ void fragment() {
 		final_color = ca;
 
 	} else {
-		// Close-LOD: texture-based Voronoi with detail noise
+		// Micro-LOD (<= 1 wu/px): GLSL Voronoi + full detail textures — only at bacteria scale
 		float d1 = 1e9, d2 = 1e9;
 		int   b1 = 2,   b2 = 2;
 		for (int dy = -1; dy <= 1; dy++) {
 			for (int dx = -1; dx <= 1; dx++) {
-				ivec2 nc     = base + ivec2(dx, dy);
-				ivec2 tc     = clamp(nc - ivec2(tex_origin), ivec2(0), ivec2(ts - 1));
-				int   btype  = int(round(texelFetch(biome_tex, tc, 0).r * 4.0));
+				ivec2 nc    = base + ivec2(dx, dy);
+				int   btype = biome_from_noise(vec2(nc));
 				vec2  center = vec2(nc) + 0.5 + chunk_jitter(nc);
 				float d      = distance(chunk_f, center);
 				if (d < d1) { d2 = d1; b2 = b1; d1 = d; b1 = btype; }
@@ -228,16 +227,8 @@ void fragment() {
 			}
 		}
 		float eb = smoothstep(0.0, 0.18, d2 - d1);
-		vec3 ca, cb;
-		if (wu_per_px > 2.0) {
-			float n = noise(world_pos / 60.0) * 0.07 - 0.035;
-			float t = clamp((wu_per_px - 2.0) / 2.0, 0.0, 1.0);
-			ca = biome_color_flat(b1) + n * (1.0 - t);
-			cb = biome_color_flat(b2) + n * (1.0 - t);
-		} else {
-			ca = get_biome_color(b1, world_pos);
-			cb = get_biome_color(b2, world_pos);
-		}
+		vec3 ca = get_biome_color(b1, world_pos);
+		vec3 cb = get_biome_color(b2, world_pos);
 		final_color = mix(cb, ca, eb);
 	}
 
