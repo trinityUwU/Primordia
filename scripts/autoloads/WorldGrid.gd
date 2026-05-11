@@ -77,9 +77,13 @@ const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.06]
 const _DIFFUSE_INTERVAL: float = 0.1
 
 const MAX_DIFFUSE_CHUNKS_PER_FRAME: int = 16
+const MAX_REGEN_CHUNKS_PER_TICK: int = 32
+const EVICT_INTERVAL: float = 60.0
 var _diffuse_accumulator: float = 0.0
 var _diffuse_field_idx: int = 0
 var _diffuse_chunk_cursor: int = 0
+var _regen_cursor: int = 0
+var _evict_accumulator: float = 0.0
 var _wall_clock: float = 0.0
 
 
@@ -124,8 +128,11 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = -1) -> Dictionary:
 			fields[key].fill(snap.get(key, BIOME_DEFAULTS[resolved_biome].get(key, 0.0)))
 		_chunk_snapshots.erase(chunk_coord)
 	else:
-		# Fresh chunk — procedural generation
-		WorldGen.generate_chunk_fields(chunk_coord, resolved_biome, fields)
+		# Fresh chunk — fill with biome defaults (instantané).
+		# generate_chunk_fields (noise procédural) est trop coûteux en synchrone sur grand dezoom.
+		var defaults: Dictionary = BIOME_DEFAULTS[resolved_biome]
+		for key in FIELD_KEYS:
+			fields[key].fill(defaults.get(key, DEFAULT_VALUES.get(key, 0.0)))
 
 	var chunk: Dictionary = { "fields": fields, "_buf": buf, "biome": resolved_biome, "last_active": _wall_clock }
 	_chunks[chunk_coord] = chunk
@@ -155,9 +162,8 @@ func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) ->
 	_active_chunks.clear()
 	for cy in range(min_chunk.y, max_chunk.y + 1):
 		for cx in range(min_chunk.x, max_chunk.x + 1):
-			var coord: Vector2i = Vector2i(cx, cy)
-			get_or_create_chunk(coord)
-			_active_chunks.append(coord)
+			_active_chunks.append(Vector2i(cx, cy))
+	# Ne pas créer les chunks ici — créés à la demande dans get_or_create_chunk
 
 
 func _evict_stale_chunks() -> void:
@@ -286,10 +292,13 @@ func _copy_chunk_border(src: Array, dst: Array, s: int) -> void:
 func _process(delta: float) -> void:
 	_wall_clock += delta
 	_diffuse_accumulator += delta
+	_evict_accumulator += delta
 	if _diffuse_accumulator >= _DIFFUSE_INTERVAL:
 		_diffuse_accumulator -= _DIFFUSE_INTERVAL
 		diffuse(_DIFFUSE_FIELDS[_diffuse_field_idx], _DIFFUSE_RATES[_diffuse_field_idx])
 		_diffuse_field_idx = (_diffuse_field_idx + 1) % _DIFFUSE_FIELDS.size()
+	if _evict_accumulator >= EVICT_INTERVAL:
+		_evict_accumulator = 0.0
 		_evict_stale_chunks()
 
 
@@ -299,38 +308,46 @@ func _on_tick(tick: int) -> void:
 
 
 func _regenerate_fields() -> void:
-	for coord in _active_chunks:
+	if _active_chunks.is_empty():
+		return
+	var limit: int = mini(MAX_REGEN_CHUNKS_PER_TICK, _active_chunks.size())
+	for n in limit:
+		var idx: int = (_regen_cursor + n) % _active_chunks.size()
+		var coord: Vector2i = _active_chunks[idx]
 		if not _chunks.has(coord):
 			continue
-		var chunk: Dictionary = _chunks[coord]
-		var biome: int = chunk.get("biome", BIOME_EARTH)
-		var regen: Dictionary = BIOME_REGEN.get(biome, BIOME_REGEN[BIOME_EARTH])
-		var caps: Dictionary = BIOME_REGEN_CAP.get(biome, BIOME_REGEN_CAP[BIOME_EARTH])
-		var fields: Dictionary = chunk["fields"]
-		var o2_field: Array = fields["oxygen"]
-		for key in ["nutrients", "water", "oxygen"]:
-			var rate: float = regen.get(key, 0.0)
-			if rate <= 0.0:
+		_regen_chunk(coord)
+	_regen_cursor = (_regen_cursor + limit) % _active_chunks.size()
+
+
+func _regen_chunk(coord: Vector2i) -> void:
+	var chunk: Dictionary = _chunks[coord]
+	var biome: int = chunk.get("biome", BIOME_EARTH)
+	var regen: Dictionary = BIOME_REGEN.get(biome, BIOME_REGEN[BIOME_EARTH])
+	var caps: Dictionary = BIOME_REGEN_CAP.get(biome, BIOME_REGEN_CAP[BIOME_EARTH])
+	var fields: Dictionary = chunk["fields"]
+	for key in ["nutrients", "water", "oxygen"]:
+		var rate: float = regen.get(key, 0.0)
+		if rate <= 0.0:
+			continue
+		var cap: float = caps.get(key, 1.0)
+		var arr: Array = fields[key]
+		for i in arr.size():
+			if arr[i] >= cap:
 				continue
-			var cap: float = caps.get(key, 1.0)
-			var arr: Array = fields[key]
-			for i in arr.size():
-				if arr[i] >= cap:
-					continue
-				arr[i] = minf(arr[i] + rate, cap)
-		# Atmospheric buffer — strong pull toward baseline 0.21
-		# Models large-scale atmospheric O2 reservoir
-		var o2_arr: Array = fields["oxygen"]
-		for i in o2_arr.size():
-			if o2_arr[i] < 0.21:
-				o2_arr[i] = minf(o2_arr[i] + 0.02, 0.21)
-			elif o2_arr[i] > 0.50:
-				o2_arr[i] = maxf(o2_arr[i] - 0.01, 0.50)
-		# Toxins naturally degrade
-		var tox_arr: Array = fields["toxins"]
-		for i in tox_arr.size():
-			if tox_arr[i] > 0.0:
-				tox_arr[i] = maxf(tox_arr[i] - 0.002, 0.0)
+			arr[i] = minf(arr[i] + rate, cap)
+	# Atmospheric buffer — strong pull toward baseline 0.21
+	var o2_arr: Array = fields["oxygen"]
+	for i in o2_arr.size():
+		if o2_arr[i] < 0.21:
+			o2_arr[i] = minf(o2_arr[i] + 0.02, 0.21)
+		elif o2_arr[i] > 0.50:
+			o2_arr[i] = maxf(o2_arr[i] - 0.01, 0.50)
+	# Toxins naturally degrade
+	var tox_arr: Array = fields["toxins"]
+	for i in tox_arr.size():
+		if tox_arr[i] > 0.0:
+			tox_arr[i] = maxf(tox_arr[i] - 0.002, 0.0)
 
 
 # ── Chunk carrying capacity ───────────────────────────────────────────────────
