@@ -55,24 +55,21 @@ func _init_noises() -> void:
 	_noise_detail.fractal_octaves = 2
 
 
-# Returns biome type for chunk coord
+# Returns biome type for chunk coord — 2 noise lookups only
 func get_biome(chunk_coord: Vector2i) -> int:
 	var cx: float = float(chunk_coord.x)
 	var cy: float = float(chunk_coord.y)
-	var alt: float  = _normalize(_noise_altitude.get_noise_2d(cx, cy))
-	var hum: float  = _normalize(_noise_humidity.get_noise_2d(cx, cy))
+	var alt: float = _normalize(_noise_altitude.get_noise_2d(cx, cy))
+	var hum: float = _normalize(_noise_humidity.get_noise_2d(cx, cy))
+	return _biome_from(alt, hum)
 
-	if alt > 0.72:
-		return WorldGrid.BIOME_ROCK
-	if alt < 0.26:
-		return WorldGrid.BIOME_WATER
-	# Coastal/marsh: low altitude + high humidity
-	if alt < 0.35 and hum > 0.60:
-		return WorldGrid.BIOME_WATER
-	if hum > 0.62:
-		return WorldGrid.BIOME_WOOD
-	if hum > 0.35:
-		return WorldGrid.BIOME_GRASS
+
+func _biome_from(alt: float, hum: float) -> int:
+	if alt > 0.72:                        return WorldGrid.BIOME_ROCK
+	if alt < 0.26:                        return WorldGrid.BIOME_WATER
+	if alt < 0.35 and hum > 0.60:         return WorldGrid.BIOME_WATER
+	if hum > 0.62:                        return WorldGrid.BIOME_WOOD
+	if hum > 0.35:                        return WorldGrid.BIOME_GRASS
 	return WorldGrid.BIOME_EARTH
 
 
