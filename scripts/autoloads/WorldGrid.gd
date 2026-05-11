@@ -92,15 +92,14 @@ func get_or_create_chunk(chunk_coord: Vector2i, biome: int = -1) -> Dictionary:
 		_chunks[chunk_coord]["last_active"] = _wall_clock
 		return _chunks[chunk_coord]
 
-	# Determine biome: persisted > provided > procedural
+	# Determine biome: manual override > provided > procedural
 	var resolved_biome: int
-	if _biome_map.has(chunk_coord):
-		resolved_biome = _biome_map[chunk_coord]
+	if _biome_overrides.has(chunk_coord):
+		resolved_biome = _biome_overrides[chunk_coord]
 	elif biome >= 0:
 		resolved_biome = biome
 	else:
 		resolved_biome = WorldGen.get_biome(chunk_coord)
-		_biome_map[chunk_coord] = resolved_biome
 
 	var snap: Dictionary = _chunk_snapshots.get(chunk_coord, {})
 	var cells: int = CHUNK_SIZE * CHUNK_SIZE
@@ -144,9 +143,7 @@ func set_chunk_biome(chunk_coord: Vector2i, biome: int) -> void:
 
 
 func get_chunk_biome(chunk_coord: Vector2i) -> int:
-	if not _biome_map.has(chunk_coord):
-		_biome_map[chunk_coord] = WorldGen.get_biome(chunk_coord)
-	return _biome_map[chunk_coord]
+	return _biome_overrides.get(chunk_coord, WorldGen.get_biome(chunk_coord))
 
 
 func update_active_chunks(camera_world_pos: Vector2, active_radius_px: float) -> void:

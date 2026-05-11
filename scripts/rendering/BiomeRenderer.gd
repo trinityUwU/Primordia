@@ -1,13 +1,9 @@
 extends Node2D
 
 const CHUNK_PX: float = WorldGrid.CHUNK_WORLD_SIZE
-const TEX_SIZE: int = 64
-const MARGIN: int = 8
-const REBUILD_COOLDOWN: float = 0.3
-
-# wu_per_px threshold: above this the shader computes biomes from noise directly
-# Below: texture-based with Voronoi borders
-const LOD_PROCEDURAL_THRESHOLD: float = 8.0
+const TEX_SIZE: int = 128   # covers 128×128 chunks — enough even at macro zoom
+const MARGIN: int = 16      # rebuild when camera is within 16 chunks of border
+const REBUILD_COOLDOWN: float = 0.5  # max 2 rebuilds/s
 
 var _image: Image
 var _texture: ImageTexture
@@ -57,21 +53,19 @@ func _process(delta: float) -> void:
 	var zoom: float = camera.zoom.x
 	var wu_per_px: float = 1.0 / zoom
 
-	# Only rebuild texture when in texture-based LOD range
-	if wu_per_px <= LOD_PROCEDURAL_THRESHOLD:
-		var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
-		var needs_rebuild: bool = _dirty
-		if not needs_rebuild:
-			var rel: Vector2i = center_chunk - _tex_origin
-			needs_rebuild = (
-				rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
-				rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
-			)
-		if needs_rebuild and _cooldown <= 0.0:
-			_dirty = false
-			_cooldown = REBUILD_COOLDOWN
-			_tex_origin = center_chunk - Vector2i(TEX_SIZE / 2, TEX_SIZE / 2)
-			_rebuild_texture()
+	var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
+	var needs_rebuild: bool = _dirty
+	if not needs_rebuild:
+		var rel: Vector2i = center_chunk - _tex_origin
+		needs_rebuild = (
+			rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
+			rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
+		)
+	if needs_rebuild and _cooldown <= 0.0:
+		_dirty = false
+		_cooldown = REBUILD_COOLDOWN
+		_tex_origin = center_chunk - Vector2i(TEX_SIZE / 2, TEX_SIZE / 2)
+		_rebuild_texture()
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	_mat.set_shader_parameter("biome_tex", _texture)
@@ -85,20 +79,13 @@ func _process(delta: float) -> void:
 
 
 func _rebuild_texture() -> void:
+	# Batch call — single GDScript loop in WorldGen, no per-chunk overhead
+	var raw: PackedByteArray = WorldGen.get_biome_rect(
+		_tex_origin.x, _tex_origin.y, TEX_SIZE, TEX_SIZE, WorldGrid._biome_overrides)
+	# Convert biome ids (0-4) to R8 pixel values (0-255)
 	var data: PackedByteArray = PackedByteArray()
 	data.resize(TEX_SIZE * TEX_SIZE)
-	var bmap: Dictionary = WorldGrid._biome_map
-	var i: int = 0
-	for py in TEX_SIZE:
-		for px in TEX_SIZE:
-			var coord: Vector2i = Vector2i(_tex_origin.x + px, _tex_origin.y + py)
-			var biome: int
-			if bmap.has(coord):
-				biome = bmap[coord]
-			else:
-				biome = WorldGen.get_biome(coord)
-				bmap[coord] = biome
-			data[i] = int(float(biome) / 4.0 * 255.0 + 0.5)
-			i += 1
+	for i in raw.size():
+		data[i] = int(float(raw[i]) / 4.0 * 255.0 + 0.5)
 	_image = Image.create_from_data(TEX_SIZE, TEX_SIZE, false, Image.FORMAT_R8, data)
 	_texture.update(_image)

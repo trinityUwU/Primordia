@@ -210,8 +210,9 @@ void fragment() {
 	vec3 final_color;
 
 	if (wu_per_px > 8.0) {
-		// Ultra-LOD: compute biome directly from GLSL noise — zero GDScript, zero texture rebuild
-		int b = biome_from_noise(chunk_f);
+		// Ultra-LOD: sample texture directly (nearest chunk), flat color — zero Voronoi
+		ivec2 tc = clamp(base - ivec2(tex_origin), ivec2(0), ivec2(ts - 1));
+		int b    = int(round(texelFetch(biome_tex, tc, 0).r * 4.0));
 		final_color = biome_color_flat(b);
 
 	} else {

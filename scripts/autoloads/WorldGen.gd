@@ -64,6 +64,27 @@ func get_biome(chunk_coord: Vector2i) -> int:
 	return _biome_from(alt, hum)
 
 
+# Batch fill: returns PackedByteArray of biomes for a rect of chunks
+# Each byte = biome id. Row-major, origin at (ox, oy), size w×h
+func get_biome_rect(ox: int, oy: int, w: int, h: int, overrides: Dictionary) -> PackedByteArray:
+	var data: PackedByteArray = PackedByteArray()
+	data.resize(w * h)
+	var i: int = 0
+	for y in h:
+		for x in w:
+			var coord := Vector2i(ox + x, oy + y)
+			if overrides.has(coord):
+				data[i] = overrides[coord]
+			else:
+				var cx: float = float(coord.x)
+				var cy: float = float(coord.y)
+				var alt: float = _normalize(_noise_altitude.get_noise_2d(cx, cy))
+				var hum: float = _normalize(_noise_humidity.get_noise_2d(cx, cy))
+				data[i] = _biome_from(alt, hum)
+			i += 1
+	return data
+
+
 func _biome_from(alt: float, hum: float) -> int:
 	if alt > 0.72:                        return WorldGrid.BIOME_ROCK
 	if alt < 0.26:                        return WorldGrid.BIOME_WATER
