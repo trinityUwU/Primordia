@@ -8,7 +8,7 @@ const CHUNK_PX: float = 256.0  # WorldGrid.CHUNK_WORLD_SIZE
 var _aggregate: Dictionary = {}  # Vector2i → PackedInt32Array
 
 var _active_chunks: Array[Vector2i] = []
-var _active_set: Dictionary = {}  # Vector2i → true (fast lookup)
+var _active_set: Dictionary = {}
 var _last_active_set: Dictionary = {}
 
 var _active_radius: float = 0.0
@@ -16,12 +16,22 @@ var _active_radius: float = 0.0
 var _last_cam_pos: Vector2 = Vector2(-999999, -999999)
 var _last_radius: float = 0.0
 
+# Deferred spawn queue — chunks entering active zone are spawned 2 per tick max
+var _spawn_queue: Array[Vector2i] = []
+const MAX_SPAWNS_PER_TICK: int = 2
+
 
 func _ready() -> void:
 	SimulationClock.tick_processed.connect(_on_tick)
 
 
 func _on_tick(tick: int) -> void:
+	# Drain spawn queue every tick (not just every 10)
+	if not _spawn_queue.is_empty():
+		var to_spawn: int = mini(MAX_SPAWNS_PER_TICK, _spawn_queue.size())
+		for _i in to_spawn:
+			_spawn_from_aggregate(_spawn_queue.pop_front())
+
 	if tick % 10 != 0:
 		return
 	_update_active_zone()
@@ -84,10 +94,10 @@ func _update_active_zone() -> void:
 		if not new_set.has(coord):
 			_aggregate_chunk(coord)
 
-	# Chunks ENTERING active zone → spawn from aggregate
+	# Chunks ENTERING active zone → enqueue for deferred spawn (2/tick max)
 	for coord in new_set:
 		if not _last_active_set.has(coord):
-			_spawn_from_aggregate(coord)
+			_spawn_queue.append(coord)
 
 	_last_active_set = new_set
 	_active_set = new_set
