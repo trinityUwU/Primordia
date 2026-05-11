@@ -143,6 +143,16 @@ vec3 get_biome_color(int b, vec2 wp) {
 	return biome_rock(wp);
 }
 
+// ── Flat biome color (no noise — for LOD) ───────────────────────────────────
+
+vec3 biome_color_flat(int b) {
+	if (b == 0) return vec3(0.06, 0.18, 0.36);   // water
+	if (b == 1) return vec3(0.44, 0.34, 0.20);   // earth
+	if (b == 2) return vec3(0.22, 0.44, 0.16);   // grass
+	if (b == 3) return vec3(0.12, 0.26, 0.10);   // wood
+	return             vec3(0.42, 0.40, 0.38);   // rock
+}
+
 // ── Main fragment ────────────────────────────────────────────────────────────
 
 void fragment() {
@@ -151,10 +161,9 @@ void fragment() {
 	ivec2 base     = ivec2(floor(chunk_f));
 	int   ts       = int(tex_size);
 
-	// Voronoi — find 2 closest jittered chunk centers for blend
+	// Voronoi — find 2 closest jittered chunk centers
 	float d1 = 1e9, d2 = 1e9;
 	int   b1 = 2,   b2 = 2;
-	vec2  c1_pos = vec2(0.0);
 
 	for (int dy = -1; dy <= 1; dy++) {
 		for (int dx = -1; dx <= 1; dx++) {
@@ -164,27 +173,43 @@ void fragment() {
 			int   btype = int(round(b_raw * 4.0));
 			vec2 center = vec2(nc) + 0.5 + chunk_jitter(nc);
 			float d     = distance(chunk_f, center);
-			if (d < d1) {
-				d2 = d1; b2 = b1;
-				d1 = d;  b1 = btype; c1_pos = center;
-			} else if (d < d2) {
-				d2 = d; b2 = btype;
-			}
+			if (d < d1) { d2 = d1; b2 = b1; d1 = d; b1 = btype; }
+			else if (d < d2) { d2 = d; b2 = btype; }
 		}
 	}
 
-	// Blend zone width — transition over ~15% of chunk radius
-	float edge_dist = d2 - d1;
-	float blend = smoothstep(0.0, 0.15, edge_dist);
+	float edge_blend = smoothstep(0.0, 0.18, d2 - d1);
 
-	vec3 col_a = get_biome_color(b1, world_pos);
-	vec3 col_b = get_biome_color(b2, world_pos);
-	vec3 final_color = mix(col_b, col_a, blend);
+	// LOD: world_units_per_pixel = 1/zoom
+	// > 2000 wu/px (~2mm/px): flat colors only — no noise at all
+	// 200..2000 wu/px: flat colors + cheap single noise blend
+	// < 200 wu/px: full detail textures
+	float wu_per_px = 1.0 / zoom;
 
-	// Global micro-vignette at viewport edges (subtle)
-	vec2 uv_centered = (UV - 0.5) * 2.0;
-	float vign = 1.0 - dot(uv_centered, uv_centered) * 0.04;
-	final_color *= vign;
+	vec3 col_a, col_b;
+
+	if (wu_per_px > 2000.0) {
+		// Pure flat — zero noise ops
+		col_a = biome_color_flat(b1);
+		col_b = biome_color_flat(b2);
+
+	} else if (wu_per_px > 200.0) {
+		// Cheap: flat + single noise layer for variation
+		float t = clamp((wu_per_px - 200.0) / 1800.0, 0.0, 1.0);
+		float n = noise(world_pos / 120.0) * 0.06 - 0.03;
+		col_a = biome_color_flat(b1) + n * (1.0 - t);
+		col_b = biome_color_flat(b2) + n * (1.0 - t);
+
+	} else {
+		// Full detail textures
+		col_a = get_biome_color(b1, world_pos);
+		col_b = get_biome_color(b2, world_pos);
+	}
+
+	vec3 final_color = mix(col_b, col_a, edge_blend);
+
+	vec2 uv_c = (UV - 0.5) * 2.0;
+	final_color *= 1.0 - dot(uv_c, uv_c) * 0.04;
 
 	COLOR = vec4(clamp(final_color, 0.0, 1.0), 1.0);
 }
