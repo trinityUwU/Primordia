@@ -188,20 +188,21 @@ void fragment() {
 
 	vec3 col_a, col_b;
 
-	if (wu_per_px > 2000.0) {
-		// Pure flat — zero noise ops
+	// LOD thresholds (wu = μm per screen pixel):
+	//   > 10 μm/px  → flat colors only  (macro view, km scale down to ~1cm)
+	//   2..10 μm/px → flat + 1 noise pass (intermediate, few mm)
+	//   < 2 μm/px   → full procedural detail (truly microscopic, bacteria visible)
+	if (wu_per_px > 10.0) {
 		col_a = biome_color_flat(b1);
 		col_b = biome_color_flat(b2);
 
-	} else if (wu_per_px > 200.0) {
-		// Cheap: flat + single noise layer for variation
-		float t = clamp((wu_per_px - 200.0) / 1800.0, 0.0, 1.0);
-		float n = noise(world_pos / 120.0) * 0.06 - 0.03;
+	} else if (wu_per_px > 2.0) {
+		float t = clamp((wu_per_px - 2.0) / 8.0, 0.0, 1.0);
+		float n = noise(world_pos / 60.0) * 0.07 - 0.035;
 		col_a = biome_color_flat(b1) + n * (1.0 - t);
 		col_b = biome_color_flat(b2) + n * (1.0 - t);
 
 	} else {
-		// Full detail textures
 		col_a = get_biome_color(b1, world_pos);
 		col_b = get_biome_color(b2, world_pos);
 	}
