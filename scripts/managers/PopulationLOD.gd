@@ -59,9 +59,9 @@ func _update_active_zone() -> void:
 	if camera == null:
 		return
 
-	var vp_size: Vector2 = get_viewport().get_visible_rect().size
-	var half: Vector2 = vp_size * 0.5 / camera.zoom
-	_active_radius = half.length() + CHUNK_PX * 2.0
+	# Active radius capped — LOD only makes sense near the camera
+	# At macro zoom the viewport covers huge areas but agents only exist near spawn point
+	_active_radius = 1200.0  # fixed 1200px world units (~5 chunks radius)
 	var cam_pos: Vector2 = camera.global_position
 
 	var pos_delta: float = cam_pos.distance_squared_to(_last_cam_pos)
