@@ -10,8 +10,8 @@ const CUSTOM_PLANT: float = 6.0
 const CUSTOM_FUNGI: float = 7.0
 const CLUSTER_CELL_PX: float = 24.0
 const CLUSTER_THRESHOLD: int = 3
-# Agents visible si moins de 512 μm par pixel à l'écran (zoom suffisant pour voir les cellules)
-const ZOOM_SHOW_AGENTS_WU_PER_PX: float = 512.0
+# Agents visibles uniquement quand 1 bactérie (~5μm) fait au moins 2px → wu_per_px ≤ 2.5
+const ZOOM_SHOW_AGENTS_WU_PER_PX: float = 2.5
 const MAX_VISIBLE_AGENTS: int = 1000  # cap d'agents affichés à l'écran
 
 # type index → visible (toggled from UI)
