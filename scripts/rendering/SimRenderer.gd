@@ -10,7 +10,8 @@ const CUSTOM_PLANT: float = 6.0
 const CUSTOM_FUNGI: float = 7.0
 const CLUSTER_CELL_PX: float = 24.0
 const CLUSTER_THRESHOLD: int = 3
-const ZOOM_SHOW_AGENTS: float = 0.8   # zoom minimum pour afficher les agents individuels
+# Agents visible si moins de 512 μm par pixel à l'écran (zoom suffisant pour voir les cellules)
+const ZOOM_SHOW_AGENTS_WU_PER_PX: float = 512.0
 const MAX_VISIBLE_AGENTS: int = 1000  # cap d'agents affichés à l'écran
 
 # type index → visible (toggled from UI)
@@ -74,8 +75,9 @@ func _process(_delta: float) -> void:
 	var alive: int = AgentPool._alive_count
 	var zoom: float = camera.zoom.x
 
-	# Hide all agents when zoomed out — territory overlay takes over
-	if zoom < ZOOM_SHOW_AGENTS:
+	# Hide agents when zoomed out too far (world units per pixel > threshold)
+	var wu_per_px: float = 1.0 / zoom
+	if wu_per_px > ZOOM_SHOW_AGENTS_WU_PER_PX:
 		_multimesh.visible_instance_count = 0
 		return
 	var dynamic_cell: float = CLUSTER_CELL_PX

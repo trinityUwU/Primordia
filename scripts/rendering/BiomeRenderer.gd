@@ -6,13 +6,15 @@ extends Node2D
 # Biome map is a 128×128 R8 texture (1 pixel = 1 chunk).
 
 const CHUNK_PX: float = WorldGrid.CHUNK_WORLD_SIZE
-const TEX_SIZE: int = 128
+const TEX_SIZE: int = 64   # 64×64 chunks visible — enough for any zoom level, 4× less work
 
 var _image: Image
 var _texture: ImageTexture
 var _mat: ShaderMaterial
 var _tex_origin: Vector2i = Vector2i(-9999, -9999)
 var _dirty: bool = true
+var _rebuild_cooldown: float = 0.0
+const REBUILD_MIN_INTERVAL: float = 0.08  # max ~12 rebuilds/s
 
 var _canvas: CanvasLayer
 var _rect: ColorRect
@@ -41,21 +43,27 @@ func _ready() -> void:
 	WorldGrid.biome_changed.connect(func(_c): _dirty = true)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var camera: Camera2D = get_viewport().get_camera_2d()
 	if camera == null:
 		return
+
+	_rebuild_cooldown -= delta
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	var zoom: float = camera.zoom.x
 	var cam_pos: Vector2 = camera.global_position
 	var half_world: Vector2 = vp_size * 0.5 / zoom
 
-	var min_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos - half_world - Vector2(CHUNK_PX * 2, CHUNK_PX * 2))
+	# Center the texture window on camera — offset by half TEX_SIZE so camera is centered
+	var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
+	var half_tex: int = TEX_SIZE / 2
+	var new_origin: Vector2i = center_chunk - Vector2i(half_tex, half_tex)
 
-	if _dirty or min_chunk != _tex_origin:
+	if (_dirty or new_origin != _tex_origin) and _rebuild_cooldown <= 0.0:
 		_dirty = false
-		_tex_origin = min_chunk
+		_tex_origin = new_origin
+		_rebuild_cooldown = REBUILD_MIN_INTERVAL
 		_rebuild_texture()
 
 	_mat.set_shader_parameter("biome_tex", _texture)
