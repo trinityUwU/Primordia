@@ -53,19 +53,21 @@ func _process(delta: float) -> void:
 	var zoom: float = camera.zoom.x
 	var wu_per_px: float = 1.0 / zoom
 
-	var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
-	var needs_rebuild: bool = _dirty
-	if not needs_rebuild:
-		var rel: Vector2i = center_chunk - _tex_origin
-		needs_rebuild = (
-			rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
-			rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
-		)
-	if needs_rebuild and _cooldown <= 0.0:
-		_dirty = false
-		_cooldown = REBUILD_COOLDOWN
-		_tex_origin = center_chunk - Vector2i(TEX_SIZE / 2, TEX_SIZE / 2)
-		_rebuild_texture()
+	# Texture only used when wu_per_px <= 4 — skip rebuild entirely at macro zoom
+	if wu_per_px <= 4.0:
+		var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
+		var needs_rebuild: bool = _dirty
+		if not needs_rebuild:
+			var rel: Vector2i = center_chunk - _tex_origin
+			needs_rebuild = (
+				rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
+				rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
+			)
+		if needs_rebuild and _cooldown <= 0.0:
+			_dirty = false
+			_cooldown = REBUILD_COOLDOWN
+			_tex_origin = center_chunk - Vector2i(TEX_SIZE / 2, TEX_SIZE / 2)
+			_rebuild_texture()
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
 	_mat.set_shader_parameter("biome_tex", _texture)

@@ -162,18 +162,10 @@ float snoise(vec2 p, float seed_off) {
 		f.y);
 }
 
-// Multi-octave noise matching WorldGen FastNoiseLite params
+// 2-octave noise — cheap, sufficient for biome shape at macro zoom
 float macro_noise(vec2 world_chunk, float freq, float seed_off) {
 	vec2 p = world_chunk * freq;
-	float v = 0.0;
-	float a = 0.5;
-	float lac = 2.0;
-	float gain = 0.5;
-	for (int i = 0; i < 4; i++) {
-		v += a * snoise(p, seed_off + float(i) * 37.0);
-		p *= lac;
-		a *= gain;
-	}
+	float v = snoise(p, seed_off) * 0.6 + snoise(p * 2.1, seed_off + 37.0) * 0.4;
 	return clamp(v, 0.0, 1.0);
 }
 
@@ -209,14 +201,19 @@ void fragment() {
 
 	vec3 final_color;
 
-	if (wu_per_px > 8.0) {
-		// Ultra-LOD: sample texture directly (nearest chunk), flat color — zero Voronoi
-		ivec2 tc = clamp(base - ivec2(tex_origin), ivec2(0), ivec2(ts - 1));
-		int b    = int(round(texelFetch(biome_tex, tc, 0).r * 4.0));
-		final_color = biome_color_flat(b);
+	if (wu_per_px > 4.0) {
+		// Macro-LOD: single biome_from_noise call — 2 noise lookups total, zero texture
+		int b = biome_from_noise(chunk_f);
+		// Cheap border softening via offset sample (no Voronoi loop)
+		int b2x = biome_from_noise(chunk_f + vec2(0.4, 0.0));
+		int b2y = biome_from_noise(chunk_f + vec2(0.0, 0.4));
+		vec3 ca = biome_color_flat(b);
+		if (b2x != b) ca = mix(biome_color_flat(b2x), ca, 0.7);
+		if (b2y != b) ca = mix(biome_color_flat(b2y), ca, 0.7);
+		final_color = ca;
 
 	} else {
-		// Voronoi for smooth organic borders
+		// Close-LOD: texture-based Voronoi with detail noise
 		float d1 = 1e9, d2 = 1e9;
 		int   b1 = 2,   b2 = 2;
 		for (int dy = -1; dy <= 1; dy++) {
@@ -234,7 +231,7 @@ void fragment() {
 		vec3 ca, cb;
 		if (wu_per_px > 2.0) {
 			float n = noise(world_pos / 60.0) * 0.07 - 0.035;
-			float t = clamp((wu_per_px - 2.0) / 6.0, 0.0, 1.0);
+			float t = clamp((wu_per_px - 2.0) / 2.0, 0.0, 1.0);
 			ca = biome_color_flat(b1) + n * (1.0 - t);
 			cb = biome_color_flat(b2) + n * (1.0 - t);
 		} else {
