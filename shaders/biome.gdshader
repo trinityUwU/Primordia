@@ -8,6 +8,9 @@ uniform vec2  vp_size;
 uniform float tex_size;
 uniform vec2  tex_origin;
 uniform float time;
+uniform float world_seed_f;
+uniform float noise_alt_freq;
+uniform float noise_hum_freq;
 
 // ── Hashing / noise ──────────────────────────────────────────────────────────
 
@@ -143,6 +146,48 @@ vec3 get_biome_color(int b, vec2 wp) {
 	return biome_rock(wp);
 }
 
+// ── Procedural biome from world noise (macro LOD — no texture) ──────────────
+
+// Smooth value noise seeded by world_seed_f offset
+float snoise(vec2 p, float seed_off) {
+	p += vec2(seed_off * 0.001, seed_off * 0.0013);
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(hash(i + vec2(0,0) + seed_off * 0.1),
+		    hash(i + vec2(1,0) + seed_off * 0.1), f.x),
+		mix(hash(i + vec2(0,1) + seed_off * 0.1),
+		    hash(i + vec2(1,1) + seed_off * 0.1), f.x),
+		f.y);
+}
+
+// Multi-octave noise matching WorldGen FastNoiseLite params
+float macro_noise(vec2 world_chunk, float freq, float seed_off) {
+	vec2 p = world_chunk * freq;
+	float v = 0.0;
+	float a = 0.5;
+	float lac = 2.0;
+	float gain = 0.5;
+	for (int i = 0; i < 4; i++) {
+		v += a * snoise(p, seed_off + float(i) * 37.0);
+		p *= lac;
+		a *= gain;
+	}
+	return clamp(v, 0.0, 1.0);
+}
+
+int biome_from_noise(vec2 world_pos_chunk) {
+	float alt = macro_noise(world_pos_chunk, noise_alt_freq, world_seed_f);
+	float hum = macro_noise(world_pos_chunk, noise_hum_freq, world_seed_f + 1000.0);
+	if (alt > 0.72)                      return 4; // ROCK
+	if (alt < 0.26)                      return 0; // WATER
+	if (alt < 0.35 && hum > 0.60)        return 0; // WATER coastal
+	if (hum > 0.62)                      return 3; // WOOD
+	if (hum > 0.35)                      return 2; // GRASS
+	return 1;                                      // EARTH
+}
+
 // ── Flat biome color (no noise — for LOD) ───────────────────────────────────
 
 vec3 biome_color_flat(int b) {
@@ -165,9 +210,8 @@ void fragment() {
 	vec3 final_color;
 
 	if (wu_per_px > 8.0) {
-		// Ultra-LOD: single texel lookup, zero Voronoi, zero noise — full 60fps at any scale
-		ivec2 tc = clamp(base - ivec2(tex_origin), ivec2(0), ivec2(ts - 1));
-		int b    = int(round(texelFetch(biome_tex, tc, 0).r * 4.0));
+		// Ultra-LOD: compute biome directly from GLSL noise — zero GDScript, zero texture rebuild
+		int b = biome_from_noise(chunk_f);
 		final_color = biome_color_flat(b);
 
 	} else {

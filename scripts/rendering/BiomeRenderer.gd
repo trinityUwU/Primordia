@@ -2,10 +2,12 @@ extends Node2D
 
 const CHUNK_PX: float = WorldGrid.CHUNK_WORLD_SIZE
 const TEX_SIZE: int = 64
+const MARGIN: int = 8
+const REBUILD_COOLDOWN: float = 0.3
 
-# Rebuild only when camera leaves the inner safe zone (TEX_SIZE/2 - MARGIN chunks from origin)
-const MARGIN: int = 6
-const REBUILD_COOLDOWN: float = 0.25  # max 4 rebuilds/s regardless of camera speed
+# wu_per_px threshold: above this the shader computes biomes from noise directly
+# Below: texture-based with Voronoi borders
+const LOD_PROCEDURAL_THRESHOLD: float = 8.0
 
 var _image: Image
 var _texture: ImageTexture
@@ -39,6 +41,11 @@ func _ready() -> void:
 
 	WorldGrid.biome_changed.connect(func(_c): _dirty = true)
 
+	# Pass WorldGen noise params to shader once (seed-based hash reproduced in GLSL)
+	_mat.set_shader_parameter("world_seed_f", float(WorldGen.world_seed % 100000))
+	_mat.set_shader_parameter("noise_alt_freq", 0.004)
+	_mat.set_shader_parameter("noise_hum_freq", 0.003)
+
 
 func _process(delta: float) -> void:
 	var camera: Camera2D = get_viewport().get_camera_2d()
@@ -46,27 +53,27 @@ func _process(delta: float) -> void:
 		return
 
 	_cooldown -= delta
-
 	var cam_pos: Vector2 = camera.global_position
-	var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
+	var zoom: float = camera.zoom.x
+	var wu_per_px: float = 1.0 / zoom
 
-	var half: int = TEX_SIZE / 2
-	var needs_rebuild: bool = _dirty
-	if not needs_rebuild:
-		var rel: Vector2i = center_chunk - _tex_origin
-		needs_rebuild = (
-			rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
-			rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
-		)
-
-	if needs_rebuild and _cooldown <= 0.0:
-		_dirty = false
-		_cooldown = REBUILD_COOLDOWN
-		_tex_origin = center_chunk - Vector2i(half, half)
-		_rebuild_texture()
+	# Only rebuild texture when in texture-based LOD range
+	if wu_per_px <= LOD_PROCEDURAL_THRESHOLD:
+		var center_chunk: Vector2i = WorldGrid.world_to_chunk(cam_pos)
+		var needs_rebuild: bool = _dirty
+		if not needs_rebuild:
+			var rel: Vector2i = center_chunk - _tex_origin
+			needs_rebuild = (
+				rel.x < MARGIN or rel.x >= TEX_SIZE - MARGIN or
+				rel.y < MARGIN or rel.y >= TEX_SIZE - MARGIN
+			)
+		if needs_rebuild and _cooldown <= 0.0:
+			_dirty = false
+			_cooldown = REBUILD_COOLDOWN
+			_tex_origin = center_chunk - Vector2i(TEX_SIZE / 2, TEX_SIZE / 2)
+			_rebuild_texture()
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
-	var zoom: float = camera.zoom.x
 	_mat.set_shader_parameter("biome_tex", _texture)
 	_mat.set_shader_parameter("tex_size", float(TEX_SIZE))
 	_mat.set_shader_parameter("tex_origin", Vector2(float(_tex_origin.x), float(_tex_origin.y)))
@@ -80,8 +87,6 @@ func _process(delta: float) -> void:
 func _rebuild_texture() -> void:
 	var data: PackedByteArray = PackedByteArray()
 	data.resize(TEX_SIZE * TEX_SIZE)
-	# Batch-read biome_map — WorldGrid.get_chunk_biome calls WorldGen only if not cached
-	# After first pass, all coords are in _biome_map so subsequent rebuilds are dictionary lookups
 	var bmap: Dictionary = WorldGrid._biome_map
 	var i: int = 0
 	for py in TEX_SIZE:
