@@ -65,6 +65,7 @@ func _process(_delta: float) -> void:
 	_mat.set_shader_parameter("cam_pos", cam_pos)
 	_mat.set_shader_parameter("zoom", zoom)
 	_mat.set_shader_parameter("vp_size", vp_size)
+	_mat.set_shader_parameter("time", Time.get_ticks_msec() / 1000.0)
 
 
 func _rebuild_texture() -> void:
