@@ -61,6 +61,7 @@ var sense_radius: PackedFloat32Array
 
 var _alloc_size: int = 0  # current allocated capacity
 var _chunk_counts: Dictionary = {}  # Vector2i → PackedInt32Array[5]
+var _spatial_dead: Dictionary = {}  # Vector2i → PackedInt32Array  (dead agents only)
 
 func _ready() -> void:
 	_compute_max_agents()
@@ -357,6 +358,11 @@ func kill(i: int) -> void:
 	dead_timer[i] = DEAD_DECAY_TICKS
 	_deaths_tick += 1
 
+	var dead_cell: Vector2i = Vector2i(floori(pos_x[i] / SPATIAL_CELL), floori(pos_y[i] / SPATIAL_CELL))
+	if not _spatial_dead.has(dead_cell):
+		_spatial_dead[dead_cell] = PackedInt32Array()
+	_spatial_dead[dead_cell].append(i)
+
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	# Return nutrients to soil (decomposition)
@@ -375,16 +381,25 @@ func get_population_count() -> int:
 
 func _rebuild_spatial() -> void:
 	_spatial.clear()
+	_spatial_dead.clear()
 	for i in count:
-		if flags[i] & FLAG_ALIVE == 0:
-			continue
-		var cell: Vector2i = Vector2i(
-			floori(pos_x[i] / SPATIAL_CELL),
-			floori(pos_y[i] / SPATIAL_CELL)
-		)
-		if not _spatial.has(cell):
-			_spatial[cell] = PackedInt32Array()
-		_spatial[cell].append(i)
+		var f: int = flags[i]
+		if f & FLAG_ALIVE:
+			var cell: Vector2i = Vector2i(
+				floori(pos_x[i] / SPATIAL_CELL),
+				floori(pos_y[i] / SPATIAL_CELL)
+			)
+			if not _spatial.has(cell):
+				_spatial[cell] = PackedInt32Array()
+			_spatial[cell].append(i)
+		elif dead_timer[i] > 0:
+			var cell: Vector2i = Vector2i(
+				floori(pos_x[i] / SPATIAL_CELL),
+				floori(pos_y[i] / SPATIAL_CELL)
+			)
+			if not _spatial_dead.has(cell):
+				_spatial_dead[cell] = PackedInt32Array()
+			_spatial_dead[cell].append(i)
 
 
 func get_agents_in_radius(px: float, py: float, radius: float) -> PackedInt32Array:
@@ -851,23 +866,30 @@ func _tick_fungi(i: int) -> void:
 
 
 func _fungi_decompose(i: int) -> void:
-	var r2: float = sense_radius[i] * sense_radius[i]
+	var r: float = sense_radius[i]
+	var r2: float = r * r
 	var px: float = pos_x[i]
 	var py: float = pos_y[i]
-	for j in count:
-		if flags[j] & FLAG_ALIVE:
-			continue
-		if dead_timer[j] <= 0:
-			continue
-		var dx: float = pos_x[j] - px
-		var dy: float = pos_y[j] - py
-		if dx * dx + dy * dy > r2:
-			continue
-		dead_timer[j] = maxi(dead_timer[j] - 10, 0)
-		var gx: int = int(pos_x[j] / WorldGrid.CELL_SIZE)
-		var gy: int = int(pos_y[j] / WorldGrid.CELL_SIZE)
-		var cur: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
-		WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur + 0.05, 1.0))
+	var cell_radius: int = ceili(r / SPATIAL_CELL)
+	var cx: int = floori(px / SPATIAL_CELL)
+	var cy: int = floori(py / SPATIAL_CELL)
+	for dy in range(-cell_radius, cell_radius + 1):
+		for dx in range(-cell_radius, cell_radius + 1):
+			var cell: Vector2i = Vector2i(cx + dx, cy + dy)
+			if not _spatial_dead.has(cell):
+				continue
+			for j in _spatial_dead[cell]:
+				if dead_timer[j] <= 0:
+					continue
+				var ddx: float = pos_x[j] - px
+				var ddy: float = pos_y[j] - py
+				if ddx * ddx + ddy * ddy > r2:
+					continue
+				dead_timer[j] = maxi(dead_timer[j] - 10, 0)
+				var gx: int = int(pos_x[j] / WorldGrid.CELL_SIZE)
+				var gy: int = int(pos_y[j] / WorldGrid.CELL_SIZE)
+				var cur: float = WorldGrid.get_cell_value(gx, gy, "nutrients")
+				WorldGrid.set_cell_value(gx, gy, "nutrients", minf(cur + 0.05, 1.0))
 
 
 func _find_prey(i: int) -> int:

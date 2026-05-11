@@ -76,8 +76,10 @@ const _DIFFUSE_FIELDS: Array[String] = ["nutrients", "oxygen", "temperature"]
 const _DIFFUSE_RATES: Array[float] = [0.05, 0.08, 0.06]
 const _DIFFUSE_INTERVAL: float = 0.1
 
+const MAX_DIFFUSE_CHUNKS_PER_FRAME: int = 16
 var _diffuse_accumulator: float = 0.0
 var _diffuse_field_idx: int = 0
+var _diffuse_chunk_cursor: int = 0
 var _wall_clock: float = 0.0
 
 
@@ -242,8 +244,13 @@ func set_cell_value(wx: int, wy: int, key: String, value: float) -> void:
 # ── Diffusion ─────────────────────────────────────────────────────────────────
 
 func diffuse(key: String, rate: float) -> void:
-	for coord in _active_chunks:
-		_diffuse_chunk(coord, key, rate)
+	if _active_chunks.is_empty():
+		return
+	var limit: int = mini(MAX_DIFFUSE_CHUNKS_PER_FRAME, _active_chunks.size())
+	for n in limit:
+		var idx: int = (_diffuse_chunk_cursor + n) % _active_chunks.size()
+		_diffuse_chunk(_active_chunks[idx], key, rate)
+	_diffuse_chunk_cursor = (_diffuse_chunk_cursor + limit) % _active_chunks.size()
 
 
 func _diffuse_chunk(coord: Vector2i, key: String, rate: float) -> void:
@@ -292,7 +299,7 @@ func _on_tick(tick: int) -> void:
 
 
 func _regenerate_fields() -> void:
-	for coord in _chunks:
+	for coord in _active_chunks:
 		if not _chunks.has(coord):
 			continue
 		var chunk: Dictionary = _chunks[coord]

@@ -32,15 +32,13 @@ window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
-[rendering]
-
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
-
 [application.run]
 
 max_fps=60
 
 
 [rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 environment/default_clear_color=Color(0.039, 0.039, 0.059, 1)

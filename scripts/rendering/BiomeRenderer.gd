@@ -37,6 +37,9 @@ func _ready() -> void:
 
 	WorldGrid.biome_changed.connect(func(_c): _dirty = true)
 
+	# Static params — set once, updated only on rebuild
+	_mat.set_shader_parameter("biome_tex", _texture)
+	_mat.set_shader_parameter("tex_size", float(TEX_SIZE))
 	# Pass WorldGen noise params to shader once (seed-based hash reproduced in GLSL)
 	_mat.set_shader_parameter("world_seed_f", float(WorldGen.world_seed % 100000))
 	_mat.set_shader_parameter("noise_alt_freq", 0.004)
@@ -70,8 +73,6 @@ func _process(delta: float) -> void:
 			_rebuild_texture()
 
 	var vp_size: Vector2 = get_viewport().get_visible_rect().size
-	_mat.set_shader_parameter("biome_tex", _texture)
-	_mat.set_shader_parameter("tex_size", float(TEX_SIZE))
 	_mat.set_shader_parameter("tex_origin", Vector2(float(_tex_origin.x), float(_tex_origin.y)))
 	_mat.set_shader_parameter("chunk_px", CHUNK_PX)
 	_mat.set_shader_parameter("cam_pos", cam_pos)
@@ -91,3 +92,5 @@ func _rebuild_texture() -> void:
 		data[i] = int(float(raw[i]) / 4.0 * 255.0 + 0.5)
 	_image = Image.create_from_data(TEX_SIZE, TEX_SIZE, false, Image.FORMAT_R8, data)
 	_texture.update(_image)
+	_mat.set_shader_parameter("biome_tex", _texture)
+	_mat.set_shader_parameter("tex_size", float(TEX_SIZE))

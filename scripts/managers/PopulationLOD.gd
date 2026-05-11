@@ -94,27 +94,31 @@ func _update_active_zone() -> void:
 
 
 func _aggregate_chunk(chunk_coord: Vector2i) -> void:
-	# Collect all living agents in this chunk and store as counts
+	# Query spatial hash — only agents near chunk center, then AABB-filter to chunk bounds
 	var cx_min: float = chunk_coord.x * CHUNK_PX
 	var cy_min: float = chunk_coord.y * CHUNK_PX
 	var cx_max: float = cx_min + CHUNK_PX
 	var cy_max: float = cy_min + CHUNK_PX
+	var center_x: float = cx_min + CHUNK_PX * 0.5
+	var center_y: float = cy_min + CHUNK_PX * 0.5
+	# Radius covers the full chunk diagonal + one spatial cell margin
+	var query_radius: float = CHUNK_PX * 0.7072 + AgentPool.SPATIAL_CELL
 
 	var counts: PackedInt32Array = PackedInt32Array()
 	counts.resize(TYPE_COUNT)
 	counts.fill(0)
 
+	var candidates: PackedInt32Array = AgentPool.get_agents_in_radius(center_x, center_y, query_radius)
 	var to_kill: Array[int] = []
-	for i in AgentPool.count:
-		if AgentPool.flags[i] & AgentPool.FLAG_ALIVE == 0:
-			continue
+	for i in candidates:
 		var px: float = AgentPool.pos_x[i]
 		var py: float = AgentPool.pos_y[i]
-		if px >= cx_min and px < cx_max and py >= cy_min and py < cy_max:
-			var t: int = AgentPool.agent_type[i]
-			if t < TYPE_COUNT:
-				counts[t] += 1
-			to_kill.append(i)
+		if px < cx_min or px >= cx_max or py < cy_min or py >= cy_max:
+			continue
+		var t: int = AgentPool.agent_type[i]
+		if t < TYPE_COUNT:
+			counts[t] += 1
+		to_kill.append(i)
 
 	# Kill aggregated agents (they live on as counts)
 	for i in to_kill:
