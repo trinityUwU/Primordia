@@ -358,11 +358,6 @@ func kill(i: int) -> void:
 	dead_timer[i] = DEAD_DECAY_TICKS
 	_deaths_tick += 1
 
-	var dead_cell: Vector2i = Vector2i(floori(pos_x[i] / SPATIAL_CELL), floori(pos_y[i] / SPATIAL_CELL))
-	if not _spatial_dead.has(dead_cell):
-		_spatial_dead[dead_cell] = PackedInt32Array()
-	_spatial_dead[dead_cell].append(i)
-
 	var gx: int = int(pos_x[i] / WorldGrid.CELL_SIZE)
 	var gy: int = int(pos_y[i] / WorldGrid.CELL_SIZE)
 	# Return nutrients to soil (decomposition)
